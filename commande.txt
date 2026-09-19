@@ -1,0 +1,8 @@
+npm run build
+
+term 1 : php -S localhost:8000
+
+term 2 : cloudflared tunnel --url http://localhost:8000
+  refaire le mapping avec l'url crée
+
+verifier avec : http://localhost:8000/api.php?action=grille
