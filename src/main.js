@@ -3,14 +3,6 @@ import { DiscordSDK } from "@discord/embedded-app-sdk";
 const CLIENT_ID = document.querySelector('meta[name="client-id"]').content;
 const $ = (id) => document.getElementById(id);
 
-// Les 12 lignes gagnantes possibles : 5 lignes, 5 colonnes, 2 diagonales
-const LIGNES = [];
-for (let i = 0; i < 5; i++) {
-  LIGNES.push([0, 1, 2, 3, 4].map((j) => i * 5 + j));
-  LIGNES.push([0, 1, 2, 3, 4].map((j) => j * 5 + i));
-}
-LIGNES.push([0, 6, 12, 18, 24], [4, 8, 12, 16, 20]);
-
 let sdk = null;
 let moi = null;                       // l'utilisateur Discord
 let cochees = new Array(25).fill(false);
@@ -44,18 +36,16 @@ function afficherGrille(phrases) {
   synchroniser();
 }
 
-// Envoie mon avancement (totaux seulement) et reçoit celui des autres
+// Envoie les POSITIONS cochées (25 caractères 0/1, jamais les phrases)
+// et reçoit celles des autres joueurs
 async function synchroniser() {
   if (!moi) return;
-  const coches = cochees.filter(Boolean).length;
-  const lignes = LIGNES.filter((l) => l.every((i) => cochees[i])).length;
   try {
     const { joueurs } = await api("sync", {
       instance: sdk.instanceId,
       id: moi.id,
       nom: moi.global_name || moi.username,
-      coches,
-      lignes,
+      masque: cochees.map((c) => (c ? "1" : "0")).join(""),
     });
     afficherJoueurs(joueurs);
   } catch (e) {
@@ -63,6 +53,7 @@ async function synchroniser() {
   }
 }
 
+// Une mini-grille 5x5 par autre joueur : cases vertes = cases cochées
 function afficherJoueurs(joueurs) {
   const zone = $("joueurs");
   zone.innerHTML = "";
@@ -71,14 +62,19 @@ function afficherJoueurs(joueurs) {
     .forEach((j) => {
       const carte = document.createElement("div");
       carte.className = "joueur";
-      const nom = document.createElement("strong");
+
+      const mini = document.createElement("div");
+      mini.className = "mini";
+      for (let i = 0; i < 25; i++) {
+        const c = document.createElement("span");
+        if (j.masque[i] === "1") c.className = "on";
+        mini.appendChild(c);
+      }
+
+      const nom = document.createElement("small");
       nom.textContent = j.nom;
-      const barre = document.createElement("progress");
-      barre.max = 25;
-      barre.value = j.coches;
-      const info = document.createElement("small");
-      info.textContent = `${j.coches}/25` + (j.lignes ? ` · ${j.lignes} ligne${j.lignes > 1 ? "s" : ""}` : "");
-      carte.append(nom, barre, info);
+
+      carte.append(mini, nom);
       zone.appendChild(carte);
     });
   if (!zone.children.length) zone.textContent = "En attente d'autres joueurs…";
@@ -107,7 +103,7 @@ async function main() {
     moi = auth.user;
 
     await nouvelleGrille();
-    setInterval(synchroniser, 500);   // rafraîchit l'avancement des autres
+    setInterval(synchroniser, 3000);   // rafraîchit les grilles des autres
   } catch (e) {
     $("message").textContent = e.message;
   }

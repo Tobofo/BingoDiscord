@@ -1,47 +1,102 @@
+/* ---------- Thème « tactique » : bleu nuit, rouge vif, blanc cassé ---------- */
+
+:root {
+    --fond: #0f1923;
+    --fond-2: #131f2b;
+    --carte: #1c2733;
+    --carte-survol: #263443;
+    --trait: #3a4753;
+    --rouge: #ff4655;
+    --rouge-clair: #ff6673;
+    --clair: #ece8e1;
+    --discret: #8b97a3;
+}
+
 * {
     box-sizing: border-box;
 }
 
 body {
-    font-family: system-ui, sans-serif;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 1.5rem;
-    background: #f4f1ec;
-    color: #222;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    padding: 1rem;
+    color: var(--clair);
+    background-color: var(--fond);
+    /* bandes diagonales discrètes en fond */
+    background-image: linear-gradient(
+        115deg,
+        transparent 0 55%,
+        var(--fond-2) 55% 63%,
+        transparent 63% 100%
+    );
+    background-attachment: fixed;
 }
 
-h1 {
+h2 {
     text-align: center;
-    margin-top: 0;
+    margin: 0 0 1.2rem;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .18em;
 }
 
-/* ---------- Bouton ---------- */
+/* petit filet rouge sous les titres */
+h2::after {
+    content: "";
+    display: block;
+    width: 44px;
+    height: 3px;
+    margin: .5rem auto 0;
+    background: var(--rouge);
+    clip-path: polygon(0 0, 100% 0, 86% 100%, 0 100%);
+}
+
+/* ---------- Mise en page : 3 colonnes ---------- */
+
+.page {
+    display: grid;
+    grid-template-columns: minmax(110px, 1fr) minmax(0, 3fr) minmax(110px, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.colonne-centre {
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ---------- Bouton (coins coupés) ---------- */
 
 button {
     display: block;
-    margin: 1rem auto 1.5rem;
-    padding: .8rem 1.6rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    background: #c0392b;
+    margin: 1.6rem auto 0;
+    padding: .85rem 2rem;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--fond);
+    background: var(--rouge);
     border: 0;
-    border-radius: 8px;
     cursor: pointer;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    transition: background .15s;
 }
 
 button:hover {
-    background: #a93226;
+    background: var(--rouge-clair);
 }
 
 /* ---------- Messages d'erreur (masqués quand ils sont vides) ---------- */
 
 .erreur {
-    background: #fdecea;
-    color: #b71c1c;
+    background: #2a1a22;
+    color: #ff8a94;
     padding: .75rem 1rem;
-    border-radius: 8px;
+    border-left: 3px solid var(--rouge);
     text-align: center;
 }
 
@@ -49,66 +104,137 @@ button:hover {
     display: none;
 }
 
-/* ---------- Aperçu des autres joueurs ---------- */
+/* ---------- Gauche : mini-grilles des autres participants ---------- */
 
 .joueurs {
     display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-    justify-content: center;
-    margin-bottom: 1rem;
-    color: #555;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
+    color: var(--discret);
+    text-align: center;
+    font-size: .9rem;
 }
 
 .joueur {
+    width: 100%;
+    max-width: 130px;
     display: flex;
     flex-direction: column;
-    gap: .25rem;
-    min-width: 7rem;
-    padding: .5rem .75rem;
-    background: #fff;
-    border: 2px solid #d5cfc4;
-    border-radius: 8px;
+    align-items: center;
+    gap: .35rem;
 }
 
-.joueur progress {
+.mini {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
     width: 100%;
+    padding: 5px;
+    background: var(--fond-2);
+    border: 2px solid var(--trait);
 }
 
-/* ---------- Grille ---------- */
+.mini span {
+    aspect-ratio: 1;
+    background: var(--carte);
+    border: 1px solid var(--trait);
+}
+
+.mini span.on {
+    background: var(--rouge);
+    border-color: var(--rouge);
+}
+
+.joueur small {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--clair);
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+/* ---------- Milieu : ma grille (cases aux coins coupés) ---------- */
 
 .grille {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
+    gap: 8px;
 }
 
 .case {
+    --fill: var(--carte);
+    position: relative;
+    isolation: isolate;
     aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: .4rem;
+    padding: .5rem;
     text-align: center;
-    font-size: clamp(.6rem, 2vw, .95rem);
-    background: #fff;
-    border: 2px solid #d5cfc4;
-    border-radius: 8px;
+    font-size: clamp(.55rem, 1.4vw, .95rem);
+    font-weight: 600;
+    color: var(--clair);
+    background: var(--trait);            /* sert de bordure */
     cursor: pointer;
     user-select: none;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+/* fond de la case, légèrement rentré pour laisser voir la bordure */
+.case::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    z-index: -1;
+    background: var(--fill);
+    clip-path: polygon(0 0, calc(100% - 17px) 0, 100% 17px, 100% 100%, 17px 100%, 0 calc(100% - 17px));
+}
+
+.case:hover {
+    --fill: var(--carte-survol);
+    background: var(--rouge);
 }
 
 .case.cochee {
-    background: #27ae60;
-    border-color: #1e8449;
-    color: #fff;
+    --fill: var(--rouge);
+    background: var(--rouge);
+    color: var(--fond);
 }
 
-/* ---------- Petit écran ---------- */
+/* ---------- Petit écran : les colonnes s'empilent ---------- */
 
-@media (max-width: 600px) {
-    body {
-        padding: 1rem;
+@media (max-width: 800px) {
+    .page {
+        grid-template-columns: 1fr;
+    }
+
+    .colonne-centre {
+        order: 1;
+    }
+
+    .colonne-gauche {
+        order: 2;
+    }
+
+    .colonne-droite {
+        display: none;
+    }
+
+    .joueurs {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .joueur {
+        width: 110px;
+    }
+
+    .grille {
+        gap: 5px;
     }
 
     .case {

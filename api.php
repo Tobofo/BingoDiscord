@@ -52,9 +52,9 @@ if ($action === 'token') {
 
 // 2) Une grille de 25 phrases tirées au hasard dans Firebase
 if ($action === 'grille') {
-    $url = rtrim($config['firebase_url']);
+    $url = $config['firebase_url'];   // adresse complète de la liste, terminée par .json
     if (!empty($config['firebase_token'])) {
-        $url .= '?auth=' . urlencode($config['firebase_token']);
+        $url .= (str_contains($url, '?') ? '&' : '?') . 'auth=' . urlencode($config['firebase_token']);
     }
     $json = @file_get_contents($url);
     if ($json === false) {
@@ -62,6 +62,10 @@ if ($action === 'grille') {
     }
     $donnees = json_decode($json, true);
     $valeurs = is_array($donnees) ? $donnees : [];
+    // Accepte aussi une liste rangée sous une clé « phrases »
+    if (isset($valeurs['phrases']) && is_array($valeurs['phrases'])) {
+        $valeurs = $valeurs['phrases'];
+    }
 
     $phrases = [];
     foreach ($valeurs as $valeur) {
@@ -81,7 +85,7 @@ if ($action === 'grille') {
 }
 
 // 3) Avancement des joueurs : chacun envoie le sien et reçoit celui de tous.
-//    Seuls des totaux sont stockés (cases cochées, lignes), jamais le détail.
+//    Seules les POSITIONS cochées sont stockées (jamais les phrases).
 if ($action === 'sync') {
     $e        = corpsJson();
     $instance = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($e['instance'] ?? ''));
@@ -95,10 +99,15 @@ if ($action === 'sync') {
     flock($f, LOCK_EX);
     $joueurs = json_decode(stream_get_contents($f), true) ?: [];
 
+    // Positions cochées : 25 caractères « 0 » ou « 1 »
+    $masque = (string)($e['masque'] ?? '');
+    if (!preg_match('/^[01]{25}$/', $masque)) {
+        $masque = str_repeat('0', 25);
+    }
+
     $joueurs[$id] = [
         'nom'    => nomCourt((string)($e['nom'] ?? 'Joueur')),
-        'coches' => max(0, min(25, (int)($e['coches'] ?? 0))),
-        'lignes' => max(0, min(12, (int)($e['lignes'] ?? 0))),
+        'masque' => $masque,
         'vu'     => time(),
     ];
     // On oublie les joueurs qui n'ont plus donné signe de vie depuis 15 s
@@ -112,7 +121,7 @@ if ($action === 'sync') {
 
     $liste = [];
     foreach ($joueurs as $jid => $j) {
-        $liste[] = ['id' => (string)$jid, 'nom' => $j['nom'], 'coches' => $j['coches'], 'lignes' => $j['lignes']];
+        $liste[] = ['id' => (string)$jid, 'nom' => $j['nom'], 'masque' => $j['masque'] ?? str_repeat('0', 25)];
     }
     repondre(['joueurs' => $liste]);
 }

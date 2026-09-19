@@ -11,12 +11,26 @@
 </head>
 <body>
 
-<h1>🎯 Bingo</h1>
+<div class="page">
 
-<div id="joueurs" class="joueurs">Connexion à Discord…</div>
-<button id="nouvelle" type="button">Nouvelle grille</button>
-<p id="message" class="erreur"></p>
-<div id="grille" class="grille"></div>
+    <!-- Gauche : les autres participants -->
+    <aside class="colonne-gauche">
+        <h2>Participants</h2>
+        <div id="joueurs" class="joueurs">Connexion à Discord…</div>
+    </aside>
+
+    <!-- Milieu : ma grille -->
+    <main class="colonne-centre">
+        <h2>Ma grille</h2>
+        <p id="message" class="erreur"></p>
+        <div id="grille" class="grille"></div>
+        <button id="nouvelle" type="button">Nouvelle grille</button>
+    </main>
+
+    <!-- Droite : réservé pour plus tard -->
+    <aside class="colonne-droite"></aside>
+
+</div>
 
 <script src="app.js"></script>
 </body>
