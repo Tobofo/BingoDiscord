@@ -4,60 +4,78 @@ const CLIENT_ID = document.querySelector('meta[name="client-id"]').content;
 const $ = (id) => document.getElementById(id);
 
 let sdk = null;
-let moi = null;                       // l'utilisateur Discord
-let cochees = new Array(25).fill(false);
+let moi = null;                 // l'utilisateur Discord
+let etat = null;                // dernier état reçu du serveur
+let enCours = false;            // évite deux rafraîchissements en même temps
+let messagePoll = false;        // le message affiché vient-il d'un rafraîchissement ?
+let signatureGrille = "";
+let dernierVu = null;           // numéro du dernier résultat de vote déjà annoncé
+let minuteurAnnonce = null;
 
-// Appel de notre API PHP (GET par défaut, POST si on passe un corps)
+// Appel de notre API PHP (POST avec un corps JSON)
 async function api(action, corps) {
-  const options = corps
-    ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) }
-    : undefined;
-  const reponse = await fetch(`/api.php?action=${action}`, options);
+  const reponse = await fetch(`/api.php?action=${action}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(corps),
+  });
   const donnees = await reponse.json();
   if (!reponse.ok) throw new Error(donnees.erreur || "Erreur serveur");
   return donnees;
 }
 
-function afficherGrille(phrases) {
-  const grille = $("grille");
-  grille.innerHTML = "";
-  cochees = new Array(25).fill(false);
-  phrases.forEach((phrase, i) => {
-    const div = document.createElement("div");
-    div.className = "case";
-    div.textContent = phrase;
-    div.addEventListener("click", () => {
-      cochees[i] = !cochees[i];
-      div.classList.toggle("cochee", cochees[i]);
-      synchroniser();
-    });
-    grille.appendChild(div);
+// Envoie une action de jeu et affiche le nouvel état renvoyé
+async function jeu(action, extra = {}) {
+  etat = await api(action, {
+    instance: sdk.instanceId,
+    id: moi.id,
+    nom: moi.global_name || moi.username,
+    ...extra,
   });
-  synchroniser();
+  afficher();
 }
 
-// Envoie les POSITIONS cochées (25 caractères 0/1, jamais les phrases)
-// et reçoit celles des autres joueurs
-async function synchroniser() {
-  if (!moi) return;
-  try {
-    const { joueurs } = await api("sync", {
-      instance: sdk.instanceId,
-      id: moi.id,
-      nom: moi.global_name || moi.username,
-      masque: cochees.map((c) => (c ? "1" : "0")).join(""),
+const montrerErreur = (e) => {
+  messagePoll = false;
+  $("message").textContent = e.message;
+};
+
+// ---------- Affichage ----------
+
+function afficher() {
+  afficherMaGrille();
+  afficherJoueurs();
+  afficherPhrases();
+  afficherVote();
+  afficherAnnonce();
+}
+
+// Ma grille : les cases se cochent toutes seules quand un vote réussit
+function afficherMaGrille() {
+  const zone = $("grille");
+  const signature = etat.grille.join(",");
+  if (signature !== signatureGrille) {
+    signatureGrille = signature;
+    zone.innerHTML = "";
+    etat.grille.forEach((numero) => {
+      const div = document.createElement("div");
+      div.className = "case";
+      div.textContent = etat.phrases[numero];
+      zone.appendChild(div);
     });
-    afficherJoueurs(joueurs);
-  } catch (e) {
-    // Pas grave : on réessaiera au prochain passage
   }
+  etat.grille.forEach((numero, i) => {
+    zone.children[i].classList.toggle("cochee", etat.valides.includes(numero));
+  });
+  // On ne peut plus changer de grille une fois la partie commencée
+  $("nouvelle").disabled = etat.valides.length > 0;
 }
 
-// Une mini-grille 5x5 par autre joueur : cases vertes = cases cochées
-function afficherJoueurs(joueurs) {
+// Une mini-grille 5x5 par autre joueur : cases rouges = cases cochées
+function afficherJoueurs() {
   const zone = $("joueurs");
   zone.innerHTML = "";
-  joueurs
+  etat.joueurs
     .filter((j) => j.id !== String(moi.id))
     .forEach((j) => {
       const carte = document.createElement("div");
@@ -80,9 +98,94 @@ function afficherJoueurs(joueurs) {
   if (!zone.children.length) zone.textContent = "En attente d'autres joueurs…";
 }
 
-async function nouvelleGrille() {
-  const { grille } = await api("grille");
-  afficherGrille(grille);
+// Toutes les phrases de la base : un clic lance un vote, les validées sont grisées
+function afficherPhrases() {
+  const zone = $("phrases");
+  if (zone.children.length !== etat.phrases.length) {
+    zone.innerHTML = "";
+    etat.phrases.forEach((texte, i) => {
+      const div = document.createElement("div");
+      div.className = "phrase";
+      div.textContent = texte;
+      div.addEventListener("click", () => proposer(i));
+      zone.appendChild(div);
+    });
+  }
+  [...zone.children].forEach((div, i) => {
+    div.classList.toggle("validee", etat.valides.includes(i));
+    div.classList.toggle("vote-en-cours", !!etat.vote && etat.vote.phrase === i);
+  });
+}
+
+// Fenêtre de vote
+function afficherVote() {
+  const v = etat.vote;
+  $("vote").hidden = !v;
+  if (!v) return;
+  $("vote-texte").textContent = etat.phrases[v.phrase];
+  $("vote-compteur").textContent =
+    `Proposé par ${v.parNom} · ${v.oui}/${v.total} d'accord · ${v.restant} s`;
+  const peutVoter = v.electeur && v.monVote === null;
+  $("vote-boutons").hidden = !peutVoter;
+  $("vote-attente").hidden = peutVoter;
+}
+
+// Résultat du dernier vote, affiché quelques secondes
+function afficherAnnonce() {
+  const numero = etat.dernier ? etat.dernier.numero : 0;
+  if (dernierVu === null) {          // premier affichage : on ignore un ancien résultat
+    dernierVu = numero;
+    return;
+  }
+  if (numero === dernierVu) return;
+  dernierVu = numero;
+
+  const d = etat.dernier;
+  const texte = etat.phrases[d.phrase];
+  const zone = $("annonce");
+  zone.className = "annonce " + (d.resultat === "ok" ? "ok" : "ko");
+  zone.textContent =
+    d.resultat === "ok" ? `✔ Validée : « ${texte} »`
+    : d.resultat === "refuse" ? `✘ Vote refusé : « ${texte} »`
+    : `⏱ Temps écoulé : « ${texte} »`;
+  zone.hidden = false;
+  clearTimeout(minuteurAnnonce);
+  minuteurAnnonce = setTimeout(() => (zone.hidden = true), 5000);
+}
+
+// ---------- Actions ----------
+
+function proposer(numero) {
+  if (etat.valides.includes(numero)) return;
+  $("message").textContent = "";
+  if (etat.vote) {
+    montrerErreur(new Error("Un vote est déjà en cours."));
+    return;
+  }
+  jeu("proposer", { phrase: numero }).catch(montrerErreur);
+}
+
+function voter(choix) {
+  if (!etat.vote) return;
+  jeu("voter", { vote: etat.vote.id, choix }).catch(montrerErreur);
+}
+
+// Rafraîchit l'état toutes les 2 secondes (grilles des autres, votes…)
+async function rafraichir() {
+  if (enCours) return;
+  enCours = true;
+  try {
+    await jeu("etat");
+    if (messagePoll) {
+      $("message").textContent = "";
+      messagePoll = false;
+    }
+  } catch (e) {
+    montrerErreur(e);
+    messagePoll = true;
+  } finally {
+    enCours = false;
+  }
 }
 
 async function main() {
@@ -102,16 +205,18 @@ async function main() {
     const auth = await sdk.commands.authenticate({ access_token });
     moi = auth.user;
 
-    await nouvelleGrille();
-    setInterval(synchroniser, 3000);   // rafraîchit les grilles des autres
+    await jeu("etat");
+    setInterval(rafraichir, 2000);
   } catch (e) {
-    $("message").textContent = e.message;
+    montrerErreur(e);
   }
 }
 
 $("nouvelle").addEventListener("click", () => {
   $("message").textContent = "";
-  nouvelleGrille().catch((e) => ($("message").textContent = e.message));
+  jeu("nouvelle").catch(montrerErreur);
 });
+$("oui").addEventListener("click", () => voter(true));
+$("non").addEventListener("click", () => voter(false));
 
 main();

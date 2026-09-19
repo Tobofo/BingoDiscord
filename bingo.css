@@ -64,6 +64,7 @@ h2::after {
 .colonne-centre {
     max-width: 720px;
     width: 100%;
+    min-width: 0;
     margin: 0 auto;
 }
 
@@ -160,27 +161,40 @@ button:hover {
 
 .grille {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    aspect-ratio: 1;
+    margin: 0 auto;
+    /* largeur = min(place disponible, hauteur de la fenêtre moins titre et bouton) */
+    width: min(100%, max(220px, calc(100vh - 11rem)));
+    width: min(100%, max(220px, calc(100dvh - 11rem)));
+    /* permet aux cases d'adapter texte et coins à la taille de la grille */
+    container-type: inline-size;
 }
 
 .case {
     --fill: var(--carte);
+    --c: clamp(8px, 2.6cqw, 14px);      /* coin coupé */
+    --ci: calc(var(--c) * 1.2);         /* coin coupé du fond */
     position: relative;
     isolation: isolate;
-    aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: .5rem;
+    padding: 1.4cqw;
     text-align: center;
-    font-size: clamp(.55rem, 1.4vw, .95rem);
+    font-size: clamp(.5rem, 2.8cqw, .95rem);
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
     font-weight: 600;
     color: var(--clair);
     background: var(--trait);            /* sert de bordure */
-    cursor: pointer;
+    cursor: default;
     user-select: none;
-    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+    clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, var(--c) 100%, 0 calc(100% - var(--c)));
 }
 
 /* fond de la case, légèrement rentré pour laisser voir la bordure */
@@ -190,18 +204,136 @@ button:hover {
     inset: 2px;
     z-index: -1;
     background: var(--fill);
-    clip-path: polygon(0 0, calc(100% - 17px) 0, 100% 17px, 100% 100%, 17px 100%, 0 calc(100% - 17px));
-}
-
-.case:hover {
-    --fill: var(--carte-survol);
-    background: var(--rouge);
+    clip-path: polygon(0 0, calc(100% - var(--ci)) 0, 100% var(--ci), 100% 100%, var(--ci) 100%, 0 calc(100% - var(--ci)));
 }
 
 .case.cochee {
     --fill: var(--rouge);
     background: var(--rouge);
     color: var(--fond);
+}
+
+/* ---------- Droite : toutes les phrases (un clic lance un vote) ---------- */
+
+.phrases {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.phrase {
+    padding: .55rem .7rem;
+    font-size: .85rem;
+    line-height: 1.3;
+    background: var(--carte);
+    border-left: 3px solid var(--trait);
+    cursor: pointer;
+    user-select: none;
+}
+
+.phrase:hover {
+    background: var(--carte-survol);
+    border-left-color: var(--rouge);
+}
+
+.phrase.vote-en-cours {
+    background: #2a1a22;
+    border-left-color: var(--rouge);
+}
+
+/* phrase validée : grisée, plus cliquable */
+.phrase.validee {
+    opacity: .35;
+    text-decoration: line-through;
+    cursor: default;
+    background: var(--carte);
+    border-left-color: var(--trait);
+}
+
+/* ---------- Fenêtre de vote et annonces ---------- */
+
+[hidden] {
+    display: none !important;
+}
+
+.vote,
+.annonce {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(92vw, 520px);
+    z-index: 10;
+    padding: 1rem 1.2rem;
+    text-align: center;
+    background: var(--carte);
+    border-left: 4px solid var(--rouge);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .55);
+}
+
+.vote {
+    bottom: 1rem;
+}
+
+.annonce {
+    top: 1rem;
+    font-weight: 700;
+}
+
+.annonce.ok {
+    border-left-color: #2ecc71;
+}
+
+.vote p {
+    margin: 0 0 .5rem;
+}
+
+.vote-titre {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: var(--discret);
+}
+
+.vote-texte {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.vote-compteur {
+    font-size: .85rem;
+    color: var(--discret);
+}
+
+.vote-boutons {
+    display: flex;
+    gap: .8rem;
+    justify-content: center;
+    margin-top: .6rem;
+}
+
+.vote-boutons button {
+    margin: 0;
+}
+
+button.secondaire {
+    background: var(--trait);
+    color: var(--clair);
+}
+
+button.secondaire:hover {
+    background: #4b5966;
+}
+
+button:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+button:disabled:hover {
+    background: var(--rouge);
 }
 
 /* ---------- Petit écran : les colonnes s'empilent ---------- */
@@ -215,12 +347,16 @@ button:hover {
         order: 1;
     }
 
-    .colonne-gauche {
+    .colonne-droite {
         order: 2;
     }
 
-    .colonne-droite {
-        display: none;
+    .colonne-gauche {
+        order: 3;
+    }
+
+    .phrases {
+        max-height: 40vh;
     }
 
     .joueurs {
@@ -237,8 +373,4 @@ button:hover {
         gap: 5px;
     }
 
-    .case {
-        font-size: clamp(.5rem, 2.4vw, .8rem);
-        padding: .2rem;
-    }
 }
