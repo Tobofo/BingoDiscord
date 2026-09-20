@@ -1,0 +1,16 @@
+services:
+  bingo:
+    build: .
+    ports:
+      - "8000:80"          # accessible sur http://ton-serveur:8000
+    volumes:
+      - bingo_data:/var/www/html/data   # état des parties, persistant entre redéploiements
+    environment:
+      DISCORD_CLIENT_ID: "1550630231356739696"
+      DISCORD_CLIENT_SECRET: "${DISCORD_CLIENT_SECRET}"
+      FIREBASE_URL: "https://bingo-ad927-default-rtdb.europe-west1.firebasedatabase.app/bingo.json"
+      FIREBASE_TOKEN: "${FIREBASE_TOKEN:-}"
+    restart: unless-stopped
+
+volumes:
+  bingo_data:
