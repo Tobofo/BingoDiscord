@@ -238,6 +238,7 @@ function jouerSon(fichier) {
 // ---------- Actions ----------
 
 function proposer(numero) {
+  jouerSon("sons/vote.mp3");
   if (etat.valides.includes(numero)) return;
   effacerMessage();
   // Cliquer sur la phrase déjà soumise au vote compte comme un « oui » (géré par le serveur)
