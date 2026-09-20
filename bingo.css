@@ -94,15 +94,35 @@ button:hover {
 /* ---------- Messages d'erreur (masqués quand ils sont vides) ---------- */
 
 .erreur {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .8rem;
+    margin-bottom: .8rem;
+    padding: .7rem .8rem .7rem 1rem;
     background: #2a1a22;
     color: #ff8a94;
-    padding: .75rem 1rem;
     border-left: 3px solid var(--rouge);
-    text-align: center;
 }
 
-.erreur:empty {
-    display: none;
+/* petite croix pour fermer l'alerte */
+.fermer {
+    flex: none;
+    margin: 0;
+    padding: .15rem .45rem;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--clair);
+    background: transparent;
+    clip-path: none;
+}
+
+.fermer:hover {
+    background: rgba(255, 255, 255, .12);
+    color: var(--rouge-clair);
 }
 
 /* ---------- Gauche : mini-grilles des autres participants ---------- */
@@ -219,9 +239,13 @@ button:hover {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: calc(100vh - 6rem);
+    max-height: calc(100vh - 9rem);
     overflow-y: auto;
-    padding-right: 4px;
+    scrollbar-width: none;          /* Firefox */
+}
+
+.phrases::-webkit-scrollbar {
+    display: none;                  /* Chrome, Edge, Discord */
 }
 
 .phrase {
@@ -336,6 +360,116 @@ button:disabled:hover {
     background: var(--rouge);
 }
 
+/* ---------- Fenêtre de victoire ---------- */
+
+.victoire {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 25, 35, .88);
+}
+
+.victoire-carte {
+    width: min(92vw, 520px);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    background: var(--carte);
+    border-top: 4px solid var(--rouge);
+    clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+    animation: apparition .35s ease-out;
+}
+
+.victoire-carte p {
+    margin: 0;
+}
+
+.victoire-icone {
+    font-size: 3rem;
+}
+
+.victoire-titre {
+    margin-top: .5rem !important;
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.victoire-sous-titre {
+    margin-top: .5rem !important;
+    color: var(--discret);
+}
+
+.victoire-compte {
+    margin-top: 1.4rem !important;
+    font-size: .85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: var(--rouge);
+}
+
+@keyframes apparition {
+    from {
+        opacity: 0;
+        transform: scale(.85);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ---------- Gauche : bouton « Nouvelle partie » tout en bas ---------- */
+
+.colonne-gauche {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    min-height: calc(100vh - 2rem);
+}
+
+.colonne-gauche > button {
+    align-self: center;
+    margin: auto 0 0;
+    padding: .7rem 1.2rem;
+    font-size: .85rem;
+}
+
+/* ---------- Droite : barre de recherche ---------- */
+
+.recherche {
+    width: 100%;
+    margin-bottom: .6rem;
+    padding: .6rem .7rem;
+    font: inherit;
+    font-size: .85rem;
+    color: var(--clair);
+    color-scheme: dark;
+    background: var(--carte);
+    border: 0;
+    border-left: 3px solid var(--trait);
+    outline: none;
+}
+
+.recherche:focus {
+    border-left-color: var(--rouge);
+}
+
+.recherche::placeholder {
+    color: var(--discret);
+}
+
+.vide {
+    margin: .8rem 0 0;
+    font-size: .85rem;
+    text-align: center;
+    color: var(--discret);
+}
+
 /* ---------- Petit écran : les colonnes s'empilent ---------- */
 
 @media (max-width: 800px) {
@@ -353,6 +487,11 @@ button:disabled:hover {
 
     .colonne-gauche {
         order: 3;
+        min-height: 0;
+    }
+
+    .colonne-gauche > button {
+        margin-top: 1.2rem;
     }
 
     .phrases {

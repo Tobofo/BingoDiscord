@@ -1,6 +1,6 @@
 <?php
 // ---------------------------------------------------------------
-// API de l'activité : ?action=token | etat | nouvelle | proposer | voter
+// API de l'activité : ?action=token | etat | proposer | relancer | voter
 //
 // Le serveur est l'arbitre : il tire les grilles, gère les votes et calcule
 // lui-même les cases cochées. Les joueurs ne peuvent donc pas se les cocher.
@@ -12,6 +12,7 @@ $action = $_GET['action'] ?? '';
 
 const DUREE_VOTE = 30;   // secondes pour voter
 const INACTIF    = 20;   // secondes sans nouvelles => joueur retiré de la partie
+const PAUSE_VICTOIRE = 10;   // secondes d'affichage du gagnant avant la manche suivante
 
 function repondre(array $donnees, int $code = 200): never
 {
@@ -108,7 +109,7 @@ function avecPartie(string $instance, callable $traitement): array
 
     $partie = json_decode(stream_get_contents($h), true);
     if (!is_array($partie) || !isset($partie['joueurs'], $partie['valides'])) {
-        $partie = ['phrases' => [], 'joueurs' => [], 'valides' => [], 'vote' => null, 'dernier' => null, 'numero' => 0];
+        $partie = ['phrases' => [], 'joueurs' => [], 'valides' => [], 'vote' => null, 'dernier' => null, 'numero' => 0, 'victoire' => null];
     }
 
     try {
@@ -133,6 +134,49 @@ function tirerGrille(array $p): array
     return array_slice($dispo, 0, 25);
 }
 
+// Une ligne complète ? (5 lignes, 5 colonnes ou 2 diagonales de la grille 5x5)
+function aUneLigne(string $masque): bool
+{
+    if (strlen($masque) < 25) {
+        return false;
+    }
+    $lignes = [[0, 6, 12, 18, 24], [4, 8, 12, 16, 20]];
+    for ($i = 0; $i < 5; $i++) {
+        $ligne = [];
+        $colonne = [];
+        for ($j = 0; $j < 5; $j++) {
+            $ligne[]   = $i * 5 + $j;
+            $colonne[] = $j * 5 + $i;
+        }
+        $lignes[] = $ligne;
+        $lignes[] = $colonne;
+    }
+    foreach ($lignes as $cases) {
+        $complete = true;
+        foreach ($cases as $c) {
+            if ($masque[$c] !== '1') {
+                $complete = false;
+                break;
+            }
+        }
+        if ($complete) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Nouvelle manche : plus aucune phrase validée, nouvelle grille pour chaque joueur
+function nouvellePartie(array &$p): void
+{
+    $p['valides']  = [];
+    $p['vote']     = null;
+    $p['victoire'] = null;
+    foreach ($p['joueurs'] as $id => $_) {
+        $p['joueurs'][$id]['grille'] = tirerGrille($p);
+    }
+}
+
 // Retire les joueurs inactifs et conclut le vote s'il est terminé
 function actualiser(array &$p): void
 {
@@ -142,6 +186,14 @@ function actualiser(array &$p): void
         if ($j['vu'] < $maintenant - INACTIF) {
             unset($p['joueurs'][$id]);
         }
+    }
+
+    // Un joueur vient de gagner : on attend la fin de l'affichage, puis nouvelle manche
+    if (!empty($p['victoire'])) {
+        if ($maintenant >= $p['victoire']['fin']) {
+            nouvellePartie($p);
+        }
+        return;
     }
 
     if (empty($p['vote'])) {
@@ -162,23 +214,71 @@ function actualiser(array &$p): void
         }
     }
 
+    // Majorité stricte des électeurs présents (ex. 2 sur 3, 3 sur 4, 3 sur 5)
+    $total    = count($electeurs);
+    $requis   = intdiv($total, 2) + 1;
     $resultat = null;
-    if (count($electeurs) > 0 && $oui === count($electeurs)) {
-        $resultat = 'ok';                                   // unanimité
-    } elseif ($non > 0) {
-        $resultat = 'refuse';                               // un seul « non » suffit
-    } elseif (count($electeurs) === 0 || $maintenant - $v['debut'] > DUREE_VOTE) {
+    if ($total > 0 && $oui >= $requis) {
+        $resultat = 'ok';                                   // la majorité est atteinte
+    } elseif ($total > 0 && $total - $non < $requis) {
+        $resultat = 'refuse';                               // la majorité n'est plus possible
+    } elseif ($total === 0 || $maintenant - $v['debut'] > DUREE_VOTE) {
         $resultat = 'expire';                               // temps écoulé
     }
 
     if ($resultat !== null) {
-        if ($resultat === 'ok') {
+        $type = $v['type'] ?? 'phrase';
+        if ($resultat === 'ok' && $type === 'partie') {
+            nouvellePartie($p);                 // nouvelle grille pour tout le monde
+        } elseif ($resultat === 'ok') {
             $p['valides'][] = $v['phrase'];
+
+            // Tous les joueurs qui viennent de compléter une ligne gagnent (égalité possible)
+            $gagnants = [];
+            foreach ($p['joueurs'] as $jid => $j) {
+                if (aUneLigne(masque($j, $p['valides']))) {
+                    $gagnants[] = ['id' => (string)$jid, 'nom' => $j['nom']];
+                }
+            }
+            if ($gagnants) {
+                $p['victoire'] = ['gagnants' => $gagnants, 'fin' => $maintenant + PAUSE_VICTOIRE];
+            }
         }
         $p['numero']++;
-        $p['dernier'] = ['numero' => $p['numero'], 'phrase' => $v['phrase'], 'resultat' => $resultat];
+        $p['dernier'] = ['numero' => $p['numero'], 'type' => $type, 'phrase' => $v['phrase'] ?? null, 'resultat' => $resultat];
         $p['vote'] = null;
     }
+}
+
+// Lance un vote (sur une phrase, ou sur une nouvelle partie) ; celui qui le lance vote « oui »
+function lancerVote(array &$p, string $id, string $type, ?int $phrase = null): void
+{
+    if (!empty($p['victoire'])) {
+        refuser("La partie est terminée : une nouvelle manche démarre dans quelques secondes.");
+    }
+    if (!empty($p['vote'])) {
+        $v = $p['vote'];
+        $memeVote = ($v['type'] ?? 'phrase') === $type && ($v['phrase'] ?? null) === $phrase;
+        if (!$memeVote) {
+            refuser("Un vote est déjà en cours.");
+        }
+        // Même vote déjà lancé : le clic compte comme un « oui » de ce joueur (pas d'erreur)
+        if (in_array($id, $v['electeurs'], true) && !isset($v['votes'][$id])) {
+            $p['vote']['votes'][$id] = true;
+            actualiser($p);
+        }
+        return;
+    }
+    $p['vote'] = [
+        'id'        => bin2hex(random_bytes(4)),
+        'type'      => $type,
+        'phrase'    => $phrase,
+        'par'       => $id,
+        'debut'     => time(),
+        'electeurs' => array_map('strval', array_keys($p['joueurs'])),
+        'votes'     => [$id => true],
+    ];
+    actualiser($p);   // s'il est seul, le vote est conclu tout de suite
 }
 
 // Crée le joueur au besoin, note qu'il est présent et lui donne une grille
@@ -201,7 +301,7 @@ function assurerJoueur(array &$p, string $id, string $nom, array $config): void
 function masque(array $joueur, array $valides): string
 {
     $s = '';
-    foreach ($joueur['grille'] as $numero) {
+    foreach ($joueur['grille'] ?? [] as $numero) {
         $s .= in_array($numero, $valides, true) ? '1' : '0';
     }
     return $s;
@@ -227,13 +327,23 @@ function etatPour(array $p, string $id): array
         }
         $vote = [
             'id'      => $v['id'],
-            'phrase'  => $v['phrase'],
+            'type'    => $v['type'] ?? 'phrase',
+            'phrase'  => $v['phrase'] ?? null,
             'parNom'  => $p['joueurs'][$v['par']]['nom'] ?? '',
             'oui'     => $oui,
             'total'   => count($electeurs),
+            'requis'  => intdiv(count($electeurs), 2) + 1,
             'electeur' => in_array($id, $electeurs, true),
             'monVote' => $v['votes'][$id] ?? null,
             'restant' => max(0, DUREE_VOTE - (time() - $v['debut'])),
+        ];
+    }
+
+    $victoire = null;
+    if (!empty($p['victoire'])) {
+        $victoire = [
+            'gagnants' => $p['victoire']['gagnants'],
+            'restant'  => max(0, $p['victoire']['fin'] - time()),
         ];
     }
 
@@ -244,11 +354,12 @@ function etatPour(array $p, string $id): array
         'valides' => $p['valides'],
         'vote'    => $vote,
         'dernier' => $p['dernier'],
+        'victoire' => $victoire,
     ];
 }
 
 // ---------- 2) Actions de jeu ----------
-if (in_array($action, ['etat', 'nouvelle', 'proposer', 'voter'], true)) {
+if (in_array($action, ['etat', 'proposer', 'relancer', 'voter'], true)) {
     $e        = corpsJson();
     $instance = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($e['instance'] ?? ''));
     $id       = preg_replace('/[^0-9]/', '', (string)($e['id'] ?? ''));
@@ -263,13 +374,6 @@ if (in_array($action, ['etat', 'nouvelle', 'proposer', 'voter'], true)) {
             assurerJoueur($p, $id, $nom, $config);
 
             switch ($action) {
-                case 'nouvelle':
-                    if (!empty($p['valides'])) {
-                        refuser("La partie a commencé : impossible de changer de grille.");
-                    }
-                    $p['joueurs'][$id]['grille'] = tirerGrille($p);
-                    break;
-
                 case 'proposer':
                     $phrase = (int)($e['phrase'] ?? -1);
                     if (!isset($p['phrases'][$phrase])) {
@@ -278,18 +382,11 @@ if (in_array($action, ['etat', 'nouvelle', 'proposer', 'voter'], true)) {
                     if (in_array($phrase, $p['valides'], true)) {
                         refuser("Cette phrase est déjà validée.");
                     }
-                    if (!empty($p['vote'])) {
-                        refuser("Un vote est déjà en cours.");
-                    }
-                    $p['vote'] = [
-                        'id'        => bin2hex(random_bytes(4)),
-                        'phrase'    => $phrase,
-                        'par'       => $id,
-                        'debut'     => time(),
-                        'electeurs' => array_map('strval', array_keys($p['joueurs'])),
-                        'votes'     => [$id => true],   // celui qui propose vote « oui »
-                    ];
-                    actualiser($p);   // s'il est seul, la phrase est validée tout de suite
+                    lancerVote($p, $id, 'phrase', $phrase);
+                    break;
+
+                case 'relancer':
+                    lancerVote($p, $id, 'partie');
                     break;
 
                 case 'voter':
