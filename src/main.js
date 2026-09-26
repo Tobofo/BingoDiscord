@@ -162,9 +162,9 @@ function appliquerRecherche() {
 // Fenêtre de vote (une phrase, ou une nouvelle partie)
 function afficherVote() {
   const v = etat.vote;
-  jouerSon("sons/vote.mp3");
   $("vote").hidden = !v;
   if (!v) return;
+  jouerSon("sons/vote.mp3");
   const partie = v.type === "partie";
   $("vote-titre").textContent = partie ? "Nouvelle partie ?" : "Tout le monde a vu / entendu ?";
   $("vote-texte").textContent = partie ? "Nouvelle grille pour tout le monde" : etat.phrases[v.phrase];
