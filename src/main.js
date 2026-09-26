@@ -162,6 +162,7 @@ function appliquerRecherche() {
 // Fenêtre de vote (une phrase, ou une nouvelle partie)
 function afficherVote() {
   const v = etat.vote;
+  jouerSon("sons/vote.mp3");
   $("vote").hidden = !v;
   if (!v) return;
   const partie = v.type === "partie";
