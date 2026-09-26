@@ -569,3 +569,25 @@ button:disabled:hover {
     pointer-events: none;
     user-select: none;
 }
+
+/* ---------- Bouton : couper / réactiver le son ---------- */
+
+.bouton-son {
+    position: fixed;
+    left: .6rem;
+    bottom: .5rem;
+    z-index: 5;
+    margin: 0;
+    padding: .35rem .55rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    background: var(--carte);
+    border: 1px solid var(--trait);
+    clip-path: none;
+    opacity: .85;
+}
+
+.bouton-son:hover {
+    background: var(--carte-survol);
+    opacity: 1;
+}

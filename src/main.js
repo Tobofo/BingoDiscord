@@ -159,23 +159,11 @@ function appliquerRecherche() {
   $("aucune").hidden = visibles > 0 || phrases.length === 0;
 }
 
-let dernierVoteId = null; // Mémorise l'ID du dernier vote pour lequel le son a joué
 // Fenêtre de vote (une phrase, ou une nouvelle partie)
 function afficherVote() {
   const v = etat.vote;
   $("vote").hidden = !v;
-  
-  if (!v) {
-    dernierVoteId = null; // Réinitialise l'ID quand il n'y a plus de vote actif
-    return;
-  }
-
-  // Joue le son UNE SEULE FOIS dès qu'un NOUVEAU vote est détecté (pour tous les clients)
-  if (v.id !== dernierVoteId) {
-    dernierVoteId = v.id;
-    jouerSon("sons/vote.mp3");
-  }
-
+  if (!v) return;
   const partie = v.type === "partie";
   $("vote-titre").textContent = partie ? "Nouvelle partie ?" : "Tout le monde a vu / entendu ?";
   $("vote-texte").textContent = partie ? "Nouvelle grille pour tout le monde" : etat.phrases[v.phrase];
@@ -240,9 +228,27 @@ function majCompteVictoire() {
   $("victoire-compte").textContent = `Nouvelle partie dans ${s} s`;
 }
 
-// Joue un son du dossier sons/ (ignoré sans erreur si le fichier manque
-// ou si le navigateur bloque le son)
+// ---------- Son : coupé / activé, mémorisé sur cet appareil ----------
+
+const CLE_SON = "bingo-son-coupe";
+let sonCoupe = localStorage.getItem(CLE_SON) === "1";
+
+function afficherBoutonSon() {
+  $("son").textContent = sonCoupe ? "🔇" : "🔊";
+  $("son").title = sonCoupe ? "Réactiver le son" : "Couper le son";
+  $("son").setAttribute("aria-label", $("son").title);
+}
+
+function basculerSon() {
+  sonCoupe = !sonCoupe;
+  localStorage.setItem(CLE_SON, sonCoupe ? "1" : "0");
+  afficherBoutonSon();
+}
+
+// Joue un son du dossier sons/ (ignoré sans erreur si le fichier manque,
+// si le son est coupé, ou si le navigateur bloque le son)
 function jouerSon(fichier) {
+  if (sonCoupe) return;
   const audio = new Audio(fichier);
   audio.volume = 0.6;               // de 0 (muet) à 1 (fort)
   audio.play().catch(() => {});
@@ -306,7 +312,7 @@ async function main() {
     moi = auth.user;
 
     await jeu("etat");
-    setInterval(rafraichir, 500);
+    setInterval(rafraichir, 2000);
     setInterval(majCompteVictoire, 250);
   } catch (e) {
     montrerErreur(e);
@@ -318,6 +324,8 @@ $("relancer").addEventListener("click", relancer);
 $("oui").addEventListener("click", () => voter(true));
 $("non").addEventListener("click", () => voter(false));
 $("recherche").addEventListener("input", appliquerRecherche);
+$("son").addEventListener("click", basculerSon);
+afficherBoutonSon();
 
 // Numéro de version (bas droite), mis à jour par GitHub Actions à chaque push
 fetch("version.json")
