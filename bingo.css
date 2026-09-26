@@ -597,7 +597,7 @@ button:disabled:hover {
     opacity: 1;
 }
 
-/* ---------- Flash plein écran (la blague du mode clair) ---------- */
+/* ---------- Lecteur vidéo / Canvas plein écran ---------- */
 
 .flash {
     position: fixed;
@@ -606,15 +606,13 @@ button:disabled:hover {
     display: flex;
     opacity: 0;
     pointer-events: none;
-    background: radial-gradient(circle, #ffffff 0%, #ffe3ab 30%, var(--rouge) 68%, transparent 100%);
+    transition: opacity .1s ease;
 }
 
 .flash.actif {
-    animation: flash-pulse .9s ease-out forwards;
+    opacity: 1;
 }
 
-/* La vidéo sert seulement de source d'images pour le canvas ci-dessous :
-   elle n'est jamais affichée telle quelle (pour ne pas perdre la transparence) */
 #flash-video {
     position: absolute;
     width: 1px;
@@ -629,31 +627,6 @@ button:disabled:hover {
     display: none;
 }
 
-/* Une vraie vidéo a pu être chargée : le canvas (avec sa transparence) remplace le flash en dégradé */
-.flash.video {
-    background: none;
-}
-
 .flash.video #flash-canvas {
     display: block;
-}
-
-@keyframes flash-pulse {
-    0%   { opacity: 0; }
-    8%   { opacity: 1; }
-    55%  { opacity: 1; }
-    100% { opacity: 0; }
-}
-
-/* Petite secousse de l'écran pendant le flash, pour l'effet « aveuglé » */
-body.secousse {
-    animation: secousse .5s ease-in-out;
-}
-
-@keyframes secousse {
-    0%, 100% { transform: translate(0, 0); }
-    20%      { transform: translate(-6px, 3px); }
-    40%      { transform: translate(5px, -4px); }
-    60%      { transform: translate(-4px, -2px); }
-    80%      { transform: translate(4px, 3px); }
 }
