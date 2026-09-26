@@ -1,4 +1,5 @@
 <?php
+$config = require __DIR__ . '/config.php';
 $version = 'v1.0';
 $commit  = 'local';
 $date    = '1970-01-01';
