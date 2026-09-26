@@ -30,11 +30,16 @@ $cacheKey = urlencode($version . '-' . $commit);
 
 <div class="page">
 
-    <!-- Gauche : les autres participants, et le bouton « Nouvelle partie » tout en bas -->
+    <!-- Gauche : les participants et la barre de boutons en bas -->
     <aside class="colonne-gauche">
         <h2>Participants</h2>
         <div id="joueurs" class="joueurs">Connexion à Discord…</div>
-        <button id="relancer" type="button" class="secondaire">Nouvelle partie</button>
+
+        <div class="actions-gauche">
+            <button id="son" type="button" class="secondaire bouton-icone" aria-label="Couper le son" title="Couper le son">🔊</button>
+            <button id="theme" type="button" class="secondaire bouton-icone" aria-label="Passer en mode clair" title="Mode clair">🌙</button>
+            <button id="relancer" type="button" class="secondaire btn-relancer">Nouvelle partie</button>
+        </div>
     </aside>
 
     <!-- Milieu : ma grille (on ne peut pas cocher soi-même) -->

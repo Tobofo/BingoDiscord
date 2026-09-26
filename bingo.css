@@ -205,6 +205,32 @@ button:hover {
     letter-spacing: .04em;
 }
 
+.joueur-nom-ligne {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .3rem;
+    width: 100%;
+}
+
+.bouton-flash-joueur {
+    margin: 0;
+    padding: .1rem .3rem;
+    font-size: .75rem;
+    line-height: 1;
+    background: var(--carte);
+    border: 1px solid var(--trait);
+    clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+    cursor: pointer;
+    flex: none;
+}
+
+.bouton-flash-joueur:hover {
+    background: var(--rouge);
+    border-color: var(--rouge);
+    color: var(--fond);
+}
+
 /* ---------- Milieu : ma grille (cases aux coins coupés) ---------- */
 
 .grille {
@@ -625,4 +651,32 @@ button:disabled:hover {
 
 .flash.video #flash-canvas {
     display: block;
+}
+
+/* ---------- Barre d'actions en bas de la colonne gauche ---------- */
+
+.actions-gauche {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    margin-top: auto;
+    padding-top: 1rem;
+    width: 100%;
+}
+
+.actions-gauche button {
+    margin: 0;
+}
+
+.actions-gauche .btn-relancer {
+    padding: .65rem 1rem;
+    font-size: .8rem;
+    white-space: nowrap;
+}
+
+.actions-gauche .bouton-icone {
+    padding: .5rem .7rem;
+    font-size: 1.1rem;
+    line-height: 1;
 }

@@ -63,8 +63,7 @@ function afficher() {
   afficherVote();
   afficherAnnonce();
   afficherVictoire();
-  // Nouvelle partie : bloquée pendant l'affichage du gagnant ou un vote sur une phrase
-  // (pendant un vote « nouvelle partie », un clic compte comme un « oui »)
+  verifierFlashRecu(); // <-- Vérifie si quelqu'un nous a flashé
   $("relancer").disabled = !!etat.victoire || (!!etat.vote && etat.vote.type !== "partie");
 }
 
@@ -106,13 +105,37 @@ function afficherJoueurs() {
         mini.appendChild(c);
       }
 
+      const ligneNom = document.createElement("div");
+      ligneNom.className = "joueur-nom-ligne";
+
       const nom = document.createElement("small");
       nom.textContent = j.nom;
 
-      carte.append(mini, nom);
+      const btnFlash = document.createElement("button");
+      btnFlash.type = "button";
+      btnFlash.className = "bouton-flash-joueur";
+      btnFlash.textContent = "☀️";
+      btnFlash.title = `Envoyer un flash à ${j.nom}`;
+      btnFlash.addEventListener("click", () => flasherJoueur(j.id));
+
+      ligneNom.append(nom, btnFlash);
+      carte.append(mini, ligneNom);
       zone.appendChild(carte);
     });
   if (!zone.children.length) zone.textContent = "En attente d'autres joueurs…";
+}
+
+function flasherJoueur(cibleId) {
+  jeu("flash", { cible: cibleId }).catch(montrerErreur);
+}
+
+function verifierFlashRecu() {
+  if (etat.flash && String(etat.flash.cible) === String(moi.id)) {
+    if (etat.flash.id !== dernierFlashId) {
+      dernierFlashId = etat.flash.id;
+      declencherFlash();
+    }
+  }
 }
 
 // Sans accents ni majuscules, pour que la recherche soit tolérante
@@ -160,6 +183,7 @@ function appliquerRecherche() {
 }
 
 let dernierVoteId = null; // Mémorise l'ID du dernier vote pour lequel le son a joué
+let dernierFlashId = null; // Évite de rejouer le même flash reçu en boucle
 // Fenêtre de vote (une phrase, ou une nouvelle partie)
 function afficherVote() {
   const v = etat.vote;
