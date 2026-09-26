@@ -65,6 +65,8 @@
     </div>
 </div>
 
+<p id="version" class="version"></p>
+
 <script src="app.js"></script>
 </body>
 </html>

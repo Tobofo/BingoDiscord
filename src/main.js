@@ -307,4 +307,13 @@ $("oui").addEventListener("click", () => voter(true));
 $("non").addEventListener("click", () => voter(false));
 $("recherche").addEventListener("input", appliquerRecherche);
 
+// Numéro de version (bas droite), mis à jour par GitHub Actions à chaque push
+fetch("version.json")
+  .then((r) => r.json())
+  .then((v) => {
+    $("version").textContent = `${v.version} · ${v.commit}`;
+    $("version").title = `Publié le ${v.date}`;
+  })
+  .catch(() => {});   // pas grave si le fichier est absent
+
 main();

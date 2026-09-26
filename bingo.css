@@ -520,3 +520,18 @@ button:disabled:hover {
     }
 
 }
+
+/* ---------- Numéro de version ---------- */
+
+.version {
+    position: fixed;
+    right: .6rem;
+    bottom: .5rem;
+    z-index: 5;
+    margin: 0;
+    font-size: .7rem;
+    color: var(--discret);
+    opacity: .7;
+    pointer-events: none;
+    user-select: none;
+}

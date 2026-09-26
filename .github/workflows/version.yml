@@ -1,0 +1,53 @@
+name: Mettre à jour le numéro de version
+
+# Se déclenche à chaque push sur main, sauf si ce push ne fait que
+# mettre à jour version.json (pour éviter de tourner en boucle).
+on:
+  push:
+    branches: [main]
+
+# Autorise l'action à repousser un commit sur le dépôt
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[version auto]')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # nécessaire pour compter tous les commits
+
+      - name: Calculer la version
+        id: v
+        run: |
+          # v1.<nombre total de commits sur main>, ex. v1.42
+          COUNT=$(git rev-list --count HEAD)
+          SHA=$(git rev-parse --short HEAD)
+          DATE=$(date -u +%Y-%m-%d)
+          echo "version=v1.$COUNT" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+
+      - name: Écrire version.json
+        run: |
+          cat > version.json << JSON
+          {
+            "version": "${{ steps.v.outputs.version }}",
+            "commit": "${{ steps.v.outputs.sha }}",
+            "date": "${{ steps.v.outputs.date }}"
+          }
+          JSON
+
+      - name: Publier le fichier si besoin
+        run: |
+          if git diff --quiet -- version.json; then
+            echo "Version inchangée, rien à publier."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          git commit -m "chore: version.json [version auto]"
+          git push
