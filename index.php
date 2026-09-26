@@ -87,7 +87,6 @@ $cacheKey = urlencode($version . '-' . $commit);
 </p>
 
 <button id="son" type="button" class="bouton-son" aria-label="Couper le son" title="Couper le son">🔊</button>
-<p id="version" class="version"></p>
 
 <script src="app.js?v=<?php echo urlencode($version); ?>"></script>
 </body>
