@@ -1,4 +1,21 @@
-<?php $config = require __DIR__ . '/config.php'; ?>
+<?php
+$version = 'v1.0';
+$commit  = 'local';
+$date    = '1970-01-01';
+
+$versionFile = __DIR__ . '/version.json';
+if (file_exists($versionFile)) {
+    $versionData = json_decode(file_get_contents($versionFile), true);
+    if (is_array($versionData)) {
+        $version = $versionData['version'] ?? $version;
+        $commit  = $versionData['commit']  ?? $commit;
+        $date    = $versionData['date']    ?? $date;
+    }
+}
+
+$cacheKey = urlencode($version . '-' . $commit);
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -7,7 +24,7 @@
     <!-- Le Client ID est lu par le JavaScript (pas de script inline dans une activité) -->
     <meta name="client-id" content="<?= htmlspecialchars($config['discord_client_id']) ?>">
     <title>Bingo</title>
-    <link rel="stylesheet" href="bingo.css">
+    <link rel="stylesheet" href="bingo.css?v=<?php echo urlencode($version); ?>">
 </head>
 <body>
 
@@ -65,8 +82,10 @@
     </div>
 </div>
 
-<p id="version" class="version"></p>
+<p id="version" class="version" title="Publié le <?php echo htmlspecialchars($date); ?>">
+    <?php echo htmlspecialchars($version); ?> · <?php echo htmlspecialchars($commit); ?>
+</p>
 
-<script src="app.js"></script>
+<script src="app.js?v=<?php echo urlencode($version); ?>"></script>
 </body>
 </html>
