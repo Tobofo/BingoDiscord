@@ -129,12 +129,17 @@ function flasherJoueur(cibleId) {
   jeu("flash", { cible: cibleId }).catch(montrerErreur);
 }
 
+// Au niveau des variables globales (remplace let dernierFlashId = null)
+const flashesVus = new Set();
+
 function verifierFlashRecu() {
-  if (etat.flash && String(etat.flash.cible) === String(moi.id)) {
-    if (etat.flash.id !== dernierFlashId) {
-      dernierFlashId = etat.flash.id;
-      declencherFlash();
-    }
+  if (Array.isArray(etat.flashes)) {
+    etat.flashes.forEach((f) => {
+      if (String(f.cible) === String(moi.id) && !flashesVus.has(f.id)) {
+        flashesVus.add(f.id);
+        declencherFlash(); // Lance chaque flash en concurrence
+      }
+    });
   }
 }
 
@@ -424,7 +429,7 @@ async function main() {
     moi = auth.user;
 
     await jeu("etat");
-    setInterval(rafraichir, 2000);
+    setInterval(rafraichir, 500);
     setInterval(majCompteVictoire, 250);
   } catch (e) {
     montrerErreur(e);

@@ -109,7 +109,7 @@ function avecPartie(string $instance, callable $traitement): array
 
     $partie = json_decode(stream_get_contents($h), true);
     if (!is_array($partie) || !isset($partie['joueurs'], $partie['valides'])) {
-        $partie = ['phrases' => [], 'joueurs' => [], 'valides' => [], 'vote' => null, 'dernier' => null, 'numero' => 0, 'victoire' => null, 'flash' => null];
+        $partie = ['phrases' => [], 'joueurs' => [], 'valides' => [], 'vote' => null, 'dernier' => null, 'numero' => 0, 'victoire' => null, 'flashes' => []];
     }
 
     try {
@@ -355,7 +355,7 @@ function etatPour(array $p, string $id): array
         'vote'     => $vote,
         'dernier'  => $p['dernier'],
         'victoire' => $victoire,
-        'flash'    => $p['flash'] ?? null,
+        'flashes'    => $p['flashes'] ?? [],
     ];
 }
 
@@ -401,10 +401,17 @@ if (in_array($action, ['etat', 'proposer', 'relancer', 'voter', 'flash'], true))
                 case 'flash':
                     $cible = preg_replace('/[^0-9]/', '', (string)($e['cible'] ?? ''));
                     if ($cible !== '') {
-                        $p['flash'] = [
+                        if (!isset($p['flashes'])) {
+                            $p['flashes'] = [];
+                        }
+                        $p['flashes'][] = [
                             'id'    => bin2hex(random_bytes(4)),
                             'cible' => $cible,
+                            't'     => microtime(true)
                         ];
+                        // Ne conserve que les flashs des 10 dernières secondes
+                        $maintenant = microtime(true);
+                        $p['flashes'] = array_values(array_filter($p['flashes'], fn($f) => ($maintenant - $f['t']) < 10));
                     }
                     break;
             }
