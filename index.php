@@ -93,10 +93,7 @@ $cacheKey = urlencode($version . '-' . $commit);
 
 <!-- Flash plein écran (blague « mode clair ») : lit medias/flash.webm (transparent, avec son)
      dessiné sur un canvas pour conserver la transparence ; repli en flash CSS si le fichier est absent -->
-<div id="flash" class="flash" aria-hidden="true">
-    <video id="flash-video" playsinline></video>
-    <canvas id="flash-canvas"></canvas>
-</div>
+<div id="flash" class="flash" aria-hidden="true"></div>
 
 <script src="app.js?v=<?php echo $cacheKey; ?>"></script>
 </body>

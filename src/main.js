@@ -63,7 +63,7 @@ function afficher() {
   afficherVote();
   afficherAnnonce();
   afficherVictoire();
-  verifierFlashRecu(); // <-- Vérifie si quelqu'un nous a flashé
+  verifierFlashRecu();
   $("relancer").disabled = !!etat.victoire || (!!etat.vote && etat.vote.type !== "partie");
 }
 
@@ -87,7 +87,7 @@ function afficherMaGrille() {
   });
 }
 
-// Une mini-grille 5x5 par autre joueur : cases rouges = cases cochées
+// Une mini-grille 5x5 par autre joueur + bouton flash
 function afficherJoueurs() {
   const zone = $("joueurs");
   zone.innerHTML = "";
@@ -160,7 +160,6 @@ function afficherPhrases() {
   [...zone.children].forEach((div, i) => {
     const rang = etat.valides.indexOf(i);
     div.classList.toggle("validee", rang !== -1);
-    // Les phrases validées descendent en bas de la liste (la dernière validée tout en bas)
     div.style.order = rang === -1 ? "0" : String(rang + 1);
     div.classList.toggle(
       "vote-en-cours",
@@ -182,18 +181,18 @@ function appliquerRecherche() {
   $("aucune").hidden = visibles > 0 || phrases.length === 0;
 }
 
-let dernierVoteId = null; // Mémorise l'ID du dernier vote pour lequel le son a joué
-let dernierFlashId = null; // Évite de rejouer le même flash reçu en boucle
+let dernierVoteId = null;
+let dernierFlashId = null;
+
 // Fenêtre de vote (une phrase, ou une nouvelle partie)
 function afficherVote() {
   const v = etat.vote;
   $("vote").hidden = !v;
   if (!v) {
-    dernierVoteId = null; // Réinitialise l'ID quand il n'y a plus de vote actif
+    dernierVoteId = null;
     return;
   }
 
-  // Joue le son UNE SEULE FOIS dès qu'un NOUVEAU vote est détecté (pour tous les clients)
   if (v.id !== dernierVoteId) {
     dernierVoteId = v.id;
     jouerSon("sons/vote.mp3");
@@ -211,13 +210,13 @@ function afficherVote() {
 // Résultat du dernier vote, affiché quelques secondes
 function afficherAnnonce() {
   const numero = etat.dernier ? etat.dernier.numero : 0;
-  if (dernierVu === null) {          // premier affichage : on ignore un ancien résultat
+  if (dernierVu === null) {
     dernierVu = numero;
     return;
   }
   if (numero === dernierVu) return;
   dernierVu = numero;
-  if (etat.victoire) return;         // la fenêtre de victoire prend le relais
+  if (etat.victoire) return;
 
   const d = etat.dernier;
   const partie = d.type === "partie";
@@ -233,7 +232,7 @@ function afficherAnnonce() {
   minuteurAnnonce = setTimeout(() => (zone.hidden = true), 5000);
 }
 
-// Fenêtre « X a gagné ! » avec compte à rebours avant la manche suivante
+// Fenêtre « X a gagné ! » avec compte à rebours
 function afficherVictoire() {
   const v = etat.victoire;
   $("victoire").hidden = !v;
@@ -241,7 +240,7 @@ function afficherVictoire() {
     finVictoire = null;
     return;
   }
-  if (finVictoire === null) {        // la fenêtre vient d'apparaître : son + compte à rebours
+  if (finVictoire === null) {
     finVictoire = Date.now() + v.restant * 1000;
     jouerSon("sons/victoire.mp3");
   }
@@ -262,7 +261,7 @@ function majCompteVictoire() {
   $("victoire-compte").textContent = `Nouvelle partie dans ${s} s`;
 }
 
-// ---------- Son : coupé / activé, mémorisé sur cet appareil ----------
+// ---------- Son : coupé / activé ----------
 
 const CLE_SON = "bingo-son-coupe";
 let sonCoupe = localStorage.getItem(CLE_SON) === "1";
@@ -279,89 +278,89 @@ function basculerSon() {
   afficherBoutonSon();
 }
 
-// Joue un son du dossier sons/ (ignoré sans erreur si le fichier manque,
-// si le son est coupé, ou si le navigateur bloque le son)
 function jouerSon(fichier) {
   if (sonCoupe) return;
   const audio = new Audio(fichier);
-  audio.volume = 0.6;               // de 0 (muet) à 1 (fort)
+  audio.volume = 0.6;
   audio.play().catch(() => {});
 }
 
-// ---------- Blague « mode clair » : un flash de Phoenix, puis retour à la normale ----------
+// ---------- Effet Flash concurrent ----------
 
-// Dépose un fichier medias/flash.mp4 (ou .webm) pour qu'il soit lu à la place
-// du flash « maison » en CSS. Sans fichier, le flash CSS suffit très bien.
 const FLASH_VIDEO = "medias/flash.webm";
-let flashRAF = null;   // boucle d'affichage du canvas pendant la lecture
 
-// Dimensionne le canvas à la taille de l'écran (tient compte des écrans haute densité)
 function ajusterCanvasFlash(canvas) {
   const dpr = window.devicePixelRatio || 1;
   canvas.width = window.innerWidth * dpr;
   canvas.height = window.innerHeight * dpr;
 }
 
-// Copie chaque image de la vidéo sur le canvas (le canvas conserve la transparence,
-// contrairement à un <video> affiché directement)
-function dessinerFlash(video, canvas, ctx) {
-  if (video.paused || video.ended) return;
-  const { width: cw, height: ch } = canvas;
-  const { videoWidth: vw, videoHeight: vh } = video;
-  if (vw && vh) {
-    const echelle = Math.max(cw / vw, ch / vh);   // "cover" : remplit l'écran sans déformer
-    const w = vw * echelle;
-    const h = vh * echelle;
-    ctx.clearRect(0, 0, cw, ch);
-    ctx.drawImage(video, (cw - w) / 2, (ch - h) / 2, w, h);
-  }
-  flashRAF = requestAnimationFrame(() => dessinerFlash(video, canvas, ctx));
-}
-
+// Déclenche une instance indépendante du flash (superposition concurrente)
 function declencherFlash(callbackFin) {
-  const overlay = $("flash");
-  const video = $("flash-video");
-  const canvas = $("flash-canvas");
-  const ctx = canvas.getContext("2d");
+  const container = $("flash");
+  container.classList.add("actif");
 
-  overlay.classList.remove("video", "actif");
-  cancelAnimationFrame(flashRAF);
-  video.pause();
+  const video = document.createElement("video");
+  video.playsInline = true;
   video.muted = sonCoupe;
   video.src = FLASH_VIDEO;
-  video.currentTime = 0;
 
-  const terminerFlash = () => {
-    overlay.classList.remove("actif", "video");
-    cancelAnimationFrame(flashRAF);
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  ajusterCanvasFlash(canvas);
+
+  canvas.style.position = "absolute";
+  canvas.style.inset = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.pointerEvents = "none";
+
+  container.appendChild(canvas);
+
+  let rafId = null;
+  let termine = false;
+
+  const dessiner = () => {
+    if (video.paused || video.ended) return;
+    const { width: cw, height: ch } = canvas;
+    const { videoWidth: vw, videoHeight: vh } = video;
+    if (vw && vh) {
+      const echelle = Math.max(cw / vw, ch / vh);
+      const w = vw * echelle;
+      const h = vh * echelle;
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.drawImage(video, (cw - w) / 2, (ch - h) / 2, w, h);
+    }
+    rafId = requestAnimationFrame(dessiner);
+  };
+
+  const nettoyer = () => {
+    if (termine) return;
+    termine = true;
+    cancelAnimationFrame(rafId);
     video.pause();
+    canvas.remove();
+    video.remove();
+    if (container.children.length === 0) {
+      container.classList.remove("actif");
+    }
     if (callbackFin) callbackFin();
   };
 
-  // Quand la vidéo est prête à être lue
   video.oncanplaythrough = () => {
-    overlay.classList.add("actif", "video");
-    ajusterCanvasFlash(canvas);
-    video.play().catch(terminerFlash);
-    dessinerFlash(video, canvas, ctx);
-    video.addEventListener("ended", terminerFlash, { once: true });
+    video.play().catch(nettoyer);
+    dessiner();
+    video.addEventListener("ended", nettoyer, { once: true });
   };
 
-  // Si le fichier vidéo n'existe pas ou échoue : aucun effet, fermeture immédiate
-  video.onerror = () => {
-    terminerFlash();
-  };
+  video.onerror = nettoyer;
 }
 
-// Si la fenêtre change de taille pendant que le flash joue, on garde le canvas net
 window.addEventListener("resize", () => {
-  if ($("flash").classList.contains("video")) {
-    ajusterCanvasFlash($("flash-canvas"));
-  }
+  const canvases = $("flash").querySelectorAll("canvas");
+  canvases.forEach((canvas) => ajusterCanvasFlash(canvas));
 });
 
-// Le bouton ne change jamais vraiment de thème : il affiche juste le soleil
-// une fraction de seconde, le temps du flash, puis revient à la lune
 function basculerTheme() {
   const bouton = $("theme");
   bouton.textContent = "☀️";
@@ -376,7 +375,6 @@ function basculerTheme() {
 function proposer(numero) {
   if (etat.valides.includes(numero)) return;
   effacerMessage();
-  // Cliquer sur la phrase déjà soumise au vote compte comme un « oui » (géré par le serveur)
   const memeVote = etat.vote && etat.vote.type === "phrase" && etat.vote.phrase === numero;
   if (etat.vote && !memeVote) {
     montrerErreur(new Error("Un vote est déjà en cours."));
@@ -385,7 +383,6 @@ function proposer(numero) {
   jeu("proposer", { phrase: numero }).catch(montrerErreur);
 }
 
-// Lance un vote pour recommencer avec de nouvelles grilles
 function relancer() {
   effacerMessage();
   jeu("relancer").catch(montrerErreur);
@@ -396,7 +393,6 @@ function voter(choix) {
   jeu("voter", { vote: etat.vote.id, choix }).catch(montrerErreur);
 }
 
-// Rafraîchit l'état toutes les 2 secondes (grilles des autres, votes…)
 async function rafraichir() {
   if (enCours) return;
   enCours = true;
@@ -416,7 +412,6 @@ async function main() {
     sdk = new DiscordSDK(CLIENT_ID);
     await sdk.ready();
 
-    // Connexion du joueur : Discord donne un "code", PHP l'échange contre un token
     const { code } = await sdk.commands.authorize({
       client_id: CLIENT_ID,
       response_type: "code",
