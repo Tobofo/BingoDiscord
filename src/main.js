@@ -159,11 +159,21 @@ function appliquerRecherche() {
   $("aucune").hidden = visibles > 0 || phrases.length === 0;
 }
 
+let dernierVoteId = null; // Mémorise l'ID du dernier vote pour lequel le son a joué
 // Fenêtre de vote (une phrase, ou une nouvelle partie)
 function afficherVote() {
   const v = etat.vote;
   $("vote").hidden = !v;
-  if (!v) return;
+  if (!v) {
+    dernierVoteId = null; // Réinitialise l'ID quand il n'y a plus de vote actif
+    return;
+  }
+
+  // Joue le son UNE SEULE FOIS dès qu'un NOUVEAU vote est détecté (pour tous les clients)
+  if (v.id !== dernierVoteId) {
+    dernierVoteId = v.id;
+    jouerSon("sons/vote.mp3");
+  }
   const partie = v.type === "partie";
   $("vote-titre").textContent = partie ? "Nouvelle partie ?" : "Tout le monde a vu / entendu ?";
   $("vote-texte").textContent = partie ? "Nouvelle grille pour tout le monde" : etat.phrases[v.phrase];
@@ -326,14 +336,5 @@ $("non").addEventListener("click", () => voter(false));
 $("recherche").addEventListener("input", appliquerRecherche);
 $("son").addEventListener("click", basculerSon);
 afficherBoutonSon();
-
-// Numéro de version (bas droite), mis à jour par GitHub Actions à chaque push
-fetch("version.json")
-  .then((r) => r.json())
-  .then((v) => {
-    $("version").textContent = `${v.version} · ${v.commit}`;
-    $("version").title = `Publié le ${v.date}`;
-  })
-  .catch(() => {});   // pas grave si le fichier est absent
 
 main();
