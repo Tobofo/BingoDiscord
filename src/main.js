@@ -159,12 +159,14 @@ function appliquerRecherche() {
   $("aucune").hidden = visibles > 0 || phrases.length === 0;
 }
 
+voteActif = false;
 // Fenêtre de vote (une phrase, ou une nouvelle partie)
 function afficherVote() {
   const v = etat.vote;
   $("vote").hidden = !v;
   if (!v) return;
-  jouerSon("sons/vote.mp3");
+  if (!voteActif) jouerSon("sons/vote.mp3");
+  voteActif = true;
   const partie = v.type === "partie";
   $("vote-titre").textContent = partie ? "Nouvelle partie ?" : "Tout le monde a vu / entendu ?";
   $("vote-texte").textContent = partie ? "Nouvelle grille pour tout le monde" : etat.phrases[v.phrase];
@@ -177,6 +179,7 @@ function afficherVote() {
 
 // Résultat du dernier vote, affiché quelques secondes
 function afficherAnnonce() {
+  voteActif = false;
   const numero = etat.dernier ? etat.dernier.numero : 0;
   if (dernierVu === null) {          // premier affichage : on ignore un ancien résultat
     dernierVu = numero;
