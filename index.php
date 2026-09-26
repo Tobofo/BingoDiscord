@@ -91,9 +91,11 @@ $cacheKey = urlencode($version . '-' . $commit);
     <button id="theme" type="button" class="bouton-rond" aria-label="Passer en mode clair" title="Mode clair">🌙</button>
 </div>
 
-<!-- Flash plein écran (blague « mode clair ») : lit medias/flash.mp4 si présent, sinon un flash CSS -->
+<!-- Flash plein écran (blague « mode clair ») : lit medias/flash.webm (transparent, avec son)
+     dessiné sur un canvas pour conserver la transparence ; repli en flash CSS si le fichier est absent -->
 <div id="flash" class="flash" aria-hidden="true">
-    <video id="flash-video" muted playsinline></video>
+    <video id="flash-video" playsinline></video>
+    <canvas id="flash-canvas"></canvas>
 </div>
 
 <script src="app.js?v=<?php echo urlencode($version); ?>"></script>
