@@ -583,13 +583,9 @@ button:disabled:hover {
 
 .bouton-rond {
     margin: 0;
-    padding: .35rem .55rem;
+    padding: .5rem .75rem;
     font-size: 1.1rem;
     line-height: 1;
-    background: var(--carte);
-    border: 1px solid var(--trait);
-    clip-path: none;
-    opacity: .85;
 }
 
 .bouton-rond:hover {

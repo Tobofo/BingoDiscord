@@ -24,7 +24,7 @@ $cacheKey = urlencode($version . '-' . $commit);
     <!-- Le Client ID est lu par le JavaScript (pas de script inline dans une activité) -->
     <meta name="client-id" content="<?= htmlspecialchars($config['discord_client_id']) ?>">
     <title>Bingo</title>
-    <link rel="stylesheet" href="bingo.css?v=<?php echo urlencode($version); ?>">
+<link rel="stylesheet" href="bingo.css?v=<?php echo $cacheKey; ?>">
 </head>
 <body>
 
@@ -87,8 +87,8 @@ $cacheKey = urlencode($version . '-' . $commit);
 </p>
 
 <div class="coin-bas-gauche">
-    <button id="son" type="button" class="bouton-rond" aria-label="Couper le son" title="Couper le son">🔊</button>
-    <button id="theme" type="button" class="bouton-rond" aria-label="Passer en mode clair" title="Mode clair">🌙</button>
+    <button id="son" type="button" class="secondaire bouton-rond" aria-label="Couper le son" title="Couper le son">🔊</button>
+    <button id="theme" type="button" class="secondaire bouton-rond" aria-label="Passer en mode clair" title="Mode clair">🌙</button>
 </div>
 
 <!-- Flash plein écran (blague « mode clair ») : lit medias/flash.webm (transparent, avec son)
@@ -98,6 +98,6 @@ $cacheKey = urlencode($version . '-' . $commit);
     <canvas id="flash-canvas"></canvas>
 </div>
 
-<script src="app.js?v=<?php echo urlencode($version); ?>"></script>
+<script src="app.js?v=<?php echo $cacheKey; ?>"></script>
 </body>
 </html>
