@@ -14,11 +14,15 @@ RUN npm run build   # génère app.js à la racine
 FROM php:8.2-apache
 WORKDIR /var/www/html
 
+# Activer le module headers (pour le cache) et autoriser le .htaccess
+RUN a2enmod headers rewrite \
+    && sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+
 # app.js compilé à l'étape précédente
 COPY --from=build /app/app.js ./app.js
 
-# fichiers de l'application
-COPY api.php index.php config.php bingo.css ./
+# fichiers de l'application + .htaccess
+COPY api.php index.php config.php bingo.css .htaccess ./
 COPY sons ./sons
 
 # dossier data/ pour l'état des parties (persisté via volume)
