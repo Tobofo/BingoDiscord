@@ -1,6 +1,6 @@
 <?php
 // ---------------------------------------------------------------
-// API de l'activité : ?action=token | etat | proposer | relancer | voter
+// API de l'activité : ?action=token | etat | proposer | relancer | voter | flash
 //
 // Le serveur est l'arbitre : il tire les grilles, gère les votes et calcule
 // lui-même les cases cochées. Les joueurs ne peuvent donc pas se les cocher.
@@ -109,7 +109,7 @@ function avecPartie(string $instance, callable $traitement): array
 
     $partie = json_decode(stream_get_contents($h), true);
     if (!is_array($partie) || !isset($partie['joueurs'], $partie['valides'])) {
-        $partie = ['phrases' => [], 'joueurs' => [], 'valides' => [], 'vote' => null, 'dernier' => null, 'numero' => 0, 'victoire' => null];
+        $partie = ['phrases' => [], 'joueurs' => [], 'valides' => [], 'vote' => null, 'dernier' => null, 'numero' => 0, 'victoire' => null, 'flash' => null];
     }
 
     try {
@@ -348,18 +348,19 @@ function etatPour(array $p, string $id): array
     }
 
     return [
-        'phrases' => $p['phrases'],
-        'grille'  => $p['joueurs'][$id]['grille'],
-        'joueurs' => $joueurs,
-        'valides' => $p['valides'],
-        'vote'    => $vote,
-        'dernier' => $p['dernier'],
+        'phrases'  => $p['phrases'],
+        'grille'   => $p['joueurs'][$id]['grille'],
+        'joueurs'  => $joueurs,
+        'valides'  => $p['valides'],
+        'vote'     => $vote,
+        'dernier'  => $p['dernier'],
         'victoire' => $victoire,
+        'flash'    => $p['flash'] ?? null,
     ];
 }
 
 // ---------- 2) Actions de jeu ----------
-if (in_array($action, ['etat', 'proposer', 'relancer', 'voter'], true)) {
+if (in_array($action, ['etat', 'proposer', 'relancer', 'voter', 'flash'], true)) {
     $e        = corpsJson();
     $instance = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($e['instance'] ?? ''));
     $id       = preg_replace('/[^0-9]/', '', (string)($e['id'] ?? ''));
@@ -394,6 +395,16 @@ if (in_array($action, ['etat', 'proposer', 'relancer', 'voter'], true)) {
                     if ($v && $v['id'] === (string)($e['vote'] ?? '') && in_array($id, $v['electeurs'], true)) {
                         $p['vote']['votes'][$id] = (bool)($e['choix'] ?? false);
                         actualiser($p);
+                    }
+                    break;
+
+                case 'flash':
+                    $cible = preg_replace('/[^0-9]/', '', (string)($e['cible'] ?? ''));
+                    if ($cible !== '') {
+                        $p['flash'] = [
+                            'id'    => bin2hex(random_bytes(4)),
+                            'cible' => $cible,
+                        ];
                     }
                     break;
             }
