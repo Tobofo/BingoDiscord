@@ -22,7 +22,7 @@ RUN a2enmod headers rewrite \
 COPY --from=build /app/app.js ./app.js
 
 # fichiers de l'application + .htaccess
-COPY api.php index.php config.php bingo.css .htaccess ./
+COPY api.php index.php config.php bingo.css .htaccess version.json ./
 COPY sons ./sons
 
 # dossier data/ pour l'état des parties (persisté via volume)
