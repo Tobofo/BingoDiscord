@@ -91,11 +91,6 @@ $cacheKey = urlencode($version . '-' . $commit);
     <?php echo htmlspecialchars($version); ?> · <?php echo htmlspecialchars($commit); ?>
 </p>
 
-<div class="coin-bas-gauche">
-    <button id="son" type="button" class="secondaire bouton-rond" aria-label="Couper le son" title="Couper le son">🔊</button>
-    <button id="theme" type="button" class="secondaire bouton-rond" aria-label="Passer en mode clair" title="Mode clair">🌙</button>
-</div>
-
 <!-- Flash plein écran (blague « mode clair ») : lit medias/flash.webm (transparent, avec son)
      dessiné sur un canvas pour conserver la transparence ; repli en flash CSS si le fichier est absent -->
 <div id="flash" class="flash" aria-hidden="true">
