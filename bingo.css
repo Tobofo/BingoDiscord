@@ -570,13 +570,18 @@ button:disabled:hover {
     user-select: none;
 }
 
-/* ---------- Bouton : couper / réactiver le son ---------- */
+/* ---------- Boutons ronds en bas à gauche : son, mode clair ---------- */
 
-.bouton-son {
+.coin-bas-gauche {
     position: fixed;
     left: .6rem;
     bottom: .5rem;
     z-index: 5;
+    display: flex;
+    gap: .4rem;
+}
+
+.bouton-rond {
     margin: 0;
     padding: .35rem .55rem;
     font-size: 1.1rem;
@@ -587,7 +592,68 @@ button:disabled:hover {
     opacity: .85;
 }
 
-.bouton-son:hover {
+.bouton-rond:hover {
     background: var(--carte-survol);
     opacity: 1;
+}
+
+/* ---------- Flash plein écran (la blague du mode clair) ---------- */
+
+.flash {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    opacity: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, #ffffff 0%, #ffe3ab 30%, var(--rouge) 68%, transparent 100%);
+}
+
+.flash.actif {
+    animation: flash-pulse .9s ease-out forwards;
+}
+
+/* La vidéo sert seulement de source d'images pour le canvas ci-dessous :
+   elle n'est jamais affichée telle quelle (pour ne pas perdre la transparence) */
+#flash-video {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#flash-canvas {
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+/* Une vraie vidéo a pu être chargée : le canvas (avec sa transparence) remplace le flash en dégradé */
+.flash.video {
+    background: none;
+}
+
+.flash.video #flash-canvas {
+    display: block;
+}
+
+@keyframes flash-pulse {
+    0%   { opacity: 0; }
+    8%   { opacity: 1; }
+    55%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Petite secousse de l'écran pendant le flash, pour l'effet « aveuglé » */
+body.secousse {
+    animation: secousse .5s ease-in-out;
+}
+
+@keyframes secousse {
+    0%, 100% { transform: translate(0, 0); }
+    20%      { transform: translate(-6px, 3px); }
+    40%      { transform: translate(5px, -4px); }
+    60%      { transform: translate(-4px, -2px); }
+    80%      { transform: translate(4px, 3px); }
 }

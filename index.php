@@ -86,7 +86,17 @@ $cacheKey = urlencode($version . '-' . $commit);
     <?php echo htmlspecialchars($version); ?> · <?php echo htmlspecialchars($commit); ?>
 </p>
 
-<button id="son" type="button" class="bouton-son" aria-label="Couper le son" title="Couper le son">🔊</button>
+<div class="coin-bas-gauche">
+    <button id="son" type="button" class="bouton-rond" aria-label="Couper le son" title="Couper le son">🔊</button>
+    <button id="theme" type="button" class="bouton-rond" aria-label="Passer en mode clair" title="Mode clair">🌙</button>
+</div>
+
+<!-- Flash plein écran (blague « mode clair ») : lit medias/flash.webm (transparent, avec son)
+     dessiné sur un canvas pour conserver la transparence ; repli en flash CSS si le fichier est absent -->
+<div id="flash" class="flash" aria-hidden="true">
+    <video id="flash-video" playsinline></video>
+    <canvas id="flash-canvas"></canvas>
+</div>
 
 <script src="app.js?v=<?php echo urlencode($version); ?>"></script>
 </body>

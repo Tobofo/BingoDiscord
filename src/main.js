@@ -264,6 +264,94 @@ function jouerSon(fichier) {
   audio.play().catch(() => {});
 }
 
+// ---------- Blague « mode clair » : un flash de Phoenix, puis retour à la normale ----------
+
+// Dépose un fichier medias/flash.mp4 (ou .webm) pour qu'il soit lu à la place
+// du flash « maison » en CSS. Sans fichier, le flash CSS suffit très bien.
+const FLASH_VIDEO = "medias/flash.webm";
+let flashRAF = null;   // boucle d'affichage du canvas pendant la lecture
+
+// Dimensionne le canvas à la taille de l'écran (tient compte des écrans haute densité)
+function ajusterCanvasFlash(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+}
+
+// Copie chaque image de la vidéo sur le canvas (le canvas conserve la transparence,
+// contrairement à un <video> affiché directement)
+function dessinerFlash(video, canvas, ctx) {
+  if (video.paused || video.ended) return;
+  const { width: cw, height: ch } = canvas;
+  const { videoWidth: vw, videoHeight: vh } = video;
+  if (vw && vh) {
+    const echelle = Math.max(cw / vw, ch / vh);   // "cover" : remplit l'écran sans déformer
+    const w = vw * echelle;
+    const h = vh * echelle;
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(video, (cw - w) / 2, (ch - h) / 2, w, h);
+  }
+  flashRAF = requestAnimationFrame(() => dessinerFlash(video, canvas, ctx));
+}
+
+function declencherFlash() {
+  const overlay = $("flash");
+  const video = $("flash-video");
+  const canvas = $("flash-canvas");
+  const ctx = canvas.getContext("2d");
+
+  overlay.classList.remove("video");
+  cancelAnimationFrame(flashRAF);
+  video.pause();
+  video.muted = sonCoupe;   // le son de la vidéo suit le bouton 🔊 / 🔇, comme les autres sons
+  video.src = FLASH_VIDEO;
+  video.currentTime = 0;
+
+  const terminerFlash = () => {
+    overlay.classList.remove("actif", "video");
+    document.body.classList.remove("secousse");
+    cancelAnimationFrame(flashRAF);
+    video.pause();
+  };
+
+  // La vraie vidéo se charge : on la dessine sur le canvas (avec sa transparence)
+  // jusqu'à sa fin, à la place du flash en dégradé
+  video.oncanplaythrough = () => {
+    overlay.classList.add("video");
+    ajusterCanvasFlash(canvas);
+    video.play().catch(() => {});
+    dessinerFlash(video, canvas, ctx);
+    video.addEventListener("ended", terminerFlash, { once: true });
+  };
+
+  // Pas de vidéo (fichier absent, format non supporté…) : repli sur le flash CSS + un petit son
+  video.onerror = () => {
+    overlay.classList.remove("video");
+    jouerSon("sons/flash.mp3");
+    setTimeout(terminerFlash, 900);
+  };
+
+  overlay.classList.add("actif");
+  document.body.classList.add("secousse");
+  setTimeout(() => document.body.classList.remove("secousse"), 500);
+}
+
+// Si la fenêtre change de taille pendant que le flash joue, on garde le canvas net
+window.addEventListener("resize", () => {
+  if ($("flash").classList.contains("video")) {
+    ajusterCanvasFlash($("flash-canvas"));
+  }
+});
+
+// Le bouton ne change jamais vraiment de thème : il affiche juste le soleil
+// une fraction de seconde, le temps du flash, puis revient à la lune
+function basculerTheme() {
+  const bouton = $("theme");
+  bouton.textContent = "☀️";
+  declencherFlash();
+  setTimeout(() => (bouton.textContent = "🌙"), 900);
+}
+
 // ---------- Actions ----------
 
 function proposer(numero) {
@@ -335,6 +423,7 @@ $("oui").addEventListener("click", () => voter(true));
 $("non").addEventListener("click", () => voter(false));
 $("recherche").addEventListener("input", appliquerRecherche);
 $("son").addEventListener("click", basculerSon);
+$("theme").addEventListener("click", basculerTheme);
 afficherBoutonSon();
 
 main();
