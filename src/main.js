@@ -79,6 +79,7 @@ function afficherMaGrille() {
       const div = document.createElement("div");
       div.className = "case";
       div.textContent = etat.phrases[numero];
+      div.addEventListener("click", () => proposer(numero));
       zone.appendChild(div);
     });
   }
@@ -238,7 +239,6 @@ function jouerSon(fichier) {
 // ---------- Actions ----------
 
 function proposer(numero) {
-  jouerSon("sons/vote.mp3");
   if (etat.valides.includes(numero)) return;
   effacerMessage();
   // Cliquer sur la phrase déjà soumise au vote compte comme un « oui » (géré par le serveur)
@@ -294,7 +294,7 @@ async function main() {
     moi = auth.user;
 
     await jeu("etat");
-    setInterval(rafraichir, 200);
+    setInterval(rafraichir, 500);
     setInterval(majCompteVictoire, 250);
   } catch (e) {
     montrerErreur(e);

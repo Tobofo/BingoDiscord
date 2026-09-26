@@ -212,7 +212,7 @@ button:hover {
     font-weight: 600;
     color: var(--clair);
     background: var(--trait);            /* sert de bordure */
-    cursor: default;
+    cursor: pointer;
     user-select: none;
     clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, var(--c) 100%, 0 calc(100% - var(--c)));
 }
@@ -227,7 +227,14 @@ button:hover {
     clip-path: polygon(0 0, calc(100% - var(--ci)) 0, 100% var(--ci), 100% 100%, var(--ci) 100%, 0 calc(100% - var(--ci)));
 }
 
+.case:hover {
+    --fill: var(--carte-survol);
+    background: var(--rouge);
+}
+
 .case.cochee {
+    cursor: default;
+
     --fill: var(--rouge);
     background: var(--rouge);
     color: var(--fond);
