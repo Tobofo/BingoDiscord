@@ -294,46 +294,39 @@ function dessinerFlash(video, canvas, ctx) {
   flashRAF = requestAnimationFrame(() => dessinerFlash(video, canvas, ctx));
 }
 
-function declencherFlash() {
+function declencherFlash(callbackFin) {
   const overlay = $("flash");
   const video = $("flash-video");
   const canvas = $("flash-canvas");
   const ctx = canvas.getContext("2d");
 
-  overlay.classList.remove("video");
+  overlay.classList.remove("video", "actif");
   cancelAnimationFrame(flashRAF);
   video.pause();
-  video.muted = sonCoupe;   // le son de la vidéo suit le bouton 🔊 / 🔇, comme les autres sons
+  video.muted = sonCoupe;
   video.src = FLASH_VIDEO;
   video.currentTime = 0;
 
   const terminerFlash = () => {
     overlay.classList.remove("actif", "video");
-    document.body.classList.remove("secousse");
     cancelAnimationFrame(flashRAF);
     video.pause();
+    if (callbackFin) callbackFin();
   };
 
-  // La vraie vidéo se charge : on la dessine sur le canvas (avec sa transparence)
-  // jusqu'à sa fin, à la place du flash en dégradé
+  // Quand la vidéo est prête à être lue
   video.oncanplaythrough = () => {
-    overlay.classList.add("video");
+    overlay.classList.add("actif", "video");
     ajusterCanvasFlash(canvas);
-    video.play().catch(() => {});
+    video.play().catch(terminerFlash);
     dessinerFlash(video, canvas, ctx);
     video.addEventListener("ended", terminerFlash, { once: true });
   };
 
-  // Pas de vidéo (fichier absent, format non supporté…) : repli sur le flash CSS + un petit son
+  // Si le fichier vidéo n'existe pas ou échoue : aucun effet, fermeture immédiate
   video.onerror = () => {
-    overlay.classList.remove("video");
-    jouerSon("sons/flash.mp3");
-    setTimeout(terminerFlash, 900);
+    terminerFlash();
   };
-
-  overlay.classList.add("actif");
-  document.body.classList.add("secousse");
-  setTimeout(() => document.body.classList.remove("secousse"), 500);
 }
 
 // Si la fenêtre change de taille pendant que le flash joue, on garde le canvas net
@@ -348,8 +341,10 @@ window.addEventListener("resize", () => {
 function basculerTheme() {
   const bouton = $("theme");
   bouton.textContent = "☀️";
-  declencherFlash();
-  setTimeout(() => (bouton.textContent = "🌙"), 900);
+
+  declencherFlash(() => {
+    bouton.textContent = "🌙";
+  });
 }
 
 // ---------- Actions ----------
