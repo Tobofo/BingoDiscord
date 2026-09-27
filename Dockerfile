@@ -21,8 +21,8 @@ RUN a2enmod headers rewrite \
 # app.js compilé à l'étape précédente
 COPY --from=build /app/app.js ./app.js
 
-# fichiers de l'application + .htaccess
-COPY api.php index.php config.php bingo.css .htaccess version.json ./
+# Copie de TOUS les fichiers PHP, CSS et configurations
+COPY *.php bingo.css .htaccess version.json ./
 COPY sons ./sons
 COPY medias ./medias
 
