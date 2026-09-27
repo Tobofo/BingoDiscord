@@ -8,10 +8,14 @@ return [
     'discord_client_id'     => getenv('DISCORD_CLIENT_ID') ?: '1550630231356739696',
     'discord_client_secret' => getenv('DISCORD_CLIENT_SECRET') ?: '',
 
+    // Bot Discord & Interactions (nécessaires pour les commandes slash /ajouter-phrase)
+    'discord_bot_token'     => getenv('DISCORD_BOT_TOKEN') ?: '',
+    'discord_public_key'    => getenv('DISCORD_PUBLIC_KEY') ?: '',
+
     // Firebase Realtime Database : adresse affichée en haut de l'onglet « Données ».
     // Sans "/" final. Si tes phrases sont rangées sous un autre nœud, ajoute-le ici.
-    'firebase_url'   => getenv('FIREBASE_URL') ?: 'https://bingo-ad927-default-rtdb.europe-west1.firebasedatabase.app/bingo.json',
+    'firebase_url'          => getenv('FIREBASE_URL') ?: 'https://bingo-ad927-default-rtdb.europe-west1.firebasedatabase.app/bingo.json',
 
     // Laisse vide si la lecture de "phrases" est publique (voir les règles Firebase).
-    'firebase_token' => getenv('FIREBASE_TOKEN') ?: '',
+    'firebase_token'        => getenv('FIREBASE_TOKEN') ?: '',
 ];
