@@ -371,7 +371,7 @@ function etatPour(array $p, string $id): array
         'joueurs'       => $joueurs,
         'vote'          => $vote,
         'dernier'       => $p['dernier'] ?? null,
-        'victoire'      => $p['victoire'] ?? null,
+        'victoire'      => $victoire,
         'flashes'       => $p['flashes'] ?? [],
         'cooldownFlash' => obtenirCooldownFlash()
     ];
