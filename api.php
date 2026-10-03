@@ -340,16 +340,16 @@ function etatPour(array $p, string $id): array
             }
         }
         $vote = [
-            'id'      => $v['id'],
-            'type'    => $v['type'] ?? 'phrase',
-            'phrase'  => $v['phrase'] ?? null,
-            'parNom'  => $p['joueurs'][$v['par']]['nom'] ?? '',
-            'oui'     => $oui,
-            'total'   => count($electeurs),
-            'requis'  => intdiv(count($electeurs), 2) + 1,
+            'id'       => $v['id'],
+            'type'     => $v['type'] ?? 'phrase',
+            'phrase'   => $v['phrase'] ?? null,
+            'parNom'   => $p['joueurs'][$v['par']]['nom'] ?? '',
+            'oui'      => $oui,
+            'total'    => count($electeurs),
+            'requis'   => intdiv(count($electeurs), 2) + 1,
             'electeur' => in_array($id, $electeurs, true),
-            'monVote' => $v['votes'][$id] ?? null,
-            'restant' => max(0, DUREE_VOTE - (time() - $v['debut'])),
+            'monVote'  => $v['votes'][$id] ?? null,
+            'restant'  => max(0, DUREE_VOTE - (time() - $v['debut'])),
         ];
     }
 
@@ -361,16 +361,19 @@ function etatPour(array $p, string $id): array
         ];
     }
 
+    // Récupération du joueur connecté
+    $joueurCourant = $p['joueurs'][$id] ?? null;
+
     return [
-        'phrases'       => $p['phrases'],
-        'grille'        => $joueur['grille'],
-        'valides'       => $p['valides'],
+        'phrases'       => $p['phrases'] ?? [],
+        'grille'        => $joueurCourant['grille'] ?? [],
+        'valides'       => $p['valides'] ?? [],
         'joueurs'       => $joueurs,
-        'vote'          => $v,
-        'dernier'       => $p['dernier'],
-        'victoire'      => $p['victoire'],
+        'vote'          => $vote,
+        'dernier'       => $p['dernier'] ?? null,
+        'victoire'      => $p['victoire'] ?? null,
         'flashes'       => $p['flashes'] ?? [],
-        'cooldownFlash' => obtenirCooldownFlash() // Transmis au JS
+        'cooldownFlash' => obtenirCooldownFlash()
     ];
 }
 

@@ -70,7 +70,7 @@ function afficher() {
 // Ma grille : les cases se cochent toutes seules quand un vote réussit
 function afficherMaGrille() {
   const zone = $("grille");
-  const signature = etat.grille.join(",");
+  const signature = etat.grille?.join(",") ?? "";
   if (signature !== signatureGrille) {
     signatureGrille = signature;
     zone.innerHTML = "";
