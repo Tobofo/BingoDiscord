@@ -12,8 +12,8 @@ header('Content-Type: application/json; charset=utf-8');
 $config = require __DIR__ . '/config.php';
 $action = $_GET['action'] ?? '';
 
-const DUREE_VOTE = 30;   // secondes pour voter
-const INACTIF    = 20;   // secondes sans nouvelles => joueur retiré de la partie
+const DUREE_VOTE     = 30;   // secondes pour voter
+const INACTIF        = 20;   // secondes sans nouvelles => joueur retiré de la partie
 const PAUSE_VICTOIRE = 10;   // secondes d'affichage du gagnant avant la manche suivante
 
 function repondre(array $donnees, int $code = 200): never
@@ -42,7 +42,7 @@ function refuser(string $message): never
     throw new RuntimeException($message, 409);
 }
 
-// Fonction helper en haut de api.php
+// Fonction helper pour récupérer le cooldown des flashes
 function obtenirCooldownFlash(): float {
     $fichier = __DIR__ . '/data/cooldown.json';
     if (file_exists($fichier)) {
@@ -78,7 +78,7 @@ if ($action === 'token') {
     repondre(['access_token' => $token]);
 }
 
-// ---------- Outils du jeu ----------
+// ---------- Outils du jeu & Firebase ----------
 
 // Lit la liste des phrases dans Firebase (nettoyée, sans doublons)
 function chargerPhrases(array $config): array
@@ -112,6 +112,58 @@ function chargerPhrases(array $config): array
         throw new RuntimeException("Il faut au moins 25 phrases différentes dans la base (il y en a " . count($phrases) . ").", 500);
     }
     return $phrases;
+}
+
+// Sauvegarde l'ensemble du tableau des phrases dans Firebase
+function sauvegarderPhrases(array $phrases, array $config): void
+{
+    $url = $config['firebase_url'];
+    if (!empty($config['firebase_token'])) {
+        $url .= (str_contains($url, '?') ? '&' : '?') . 'auth=' . urlencode($config['firebase_token']);
+    }
+
+    $contexte = stream_context_create([
+        'http' => [
+            'method'  => 'PUT',
+            'header'  => "Content-Type: application/json\r\n",
+            'content' => json_encode(array_values($phrases), JSON_UNESCAPED_UNICODE)
+        ]
+    ]);
+
+    $res = @file_get_contents($url, false, $contexte);
+    if ($res === false) {
+        throw new RuntimeException("Impossible d'écrire dans Firebase : " . (error_get_last()['message'] ?? 'erreur inconnue'), 500);
+    }
+}
+
+// Ajoute une phrase
+function ajouterPhrase(string $texte, array $config): void
+{
+    $phrases = chargerPhrases($config);
+    $phrases[] = trim($texte);
+    sauvegarderPhrases($phrases, $config);
+}
+
+// Modifie une phrase par son index
+function modifierPhrase(int $index, string $nouveauTexte, array $config): void
+{
+    $phrases = chargerPhrases($config);
+    if (!isset($phrases[$index])) {
+        throw new RuntimeException("Phrase introuvable.", 404);
+    }
+    $phrases[$index] = trim($nouveauTexte);
+    sauvegarderPhrases($phrases, $config);
+}
+
+// Supprime une phrase par son index
+function supprimerPhrase(int $index, array $config): void
+{
+    $phrases = chargerPhrases($config);
+    if (!isset($phrases[$index])) {
+        throw new RuntimeException("Phrase introuvable.", 404);
+    }
+    unset($phrases[$index]);
+    sauvegarderPhrases(array_values($phrases), $config);
 }
 
 // Ouvre le fichier de la partie (verrouillé), exécute $traitement, puis sauvegarde
