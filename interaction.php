@@ -100,3 +100,21 @@ if (($data['type'] ?? 0) === 2 && ($data['data']['name'] ?? '') === 'ajouter-phr
     ]);
     exit;
 }
+
+// Reçois l'interaction /cooldown-flash
+if (($data['type'] ?? 0) === 2 && ($data['data']['name'] ?? '') === 'cooldown-flash') {
+    $secondes = (int)($data['data']['options'][0]['value'] ?? 1);
+    $secondes = max(0, min(5, $secondes)); // S'assure que la valeur reste entre 0 et 5
+
+    // Sauvegarde persistante dans le volume data/
+    $fichierCooldown = __DIR__ . '/data/cooldown.json';
+    file_put_contents($fichierCooldown, json_encode(['cooldown' => $secondes]));
+
+    echo json_encode([
+        'type' => 4,
+        'data' => [
+            'content' => "⏱️ Le cooldown des flashs est désormais fixé à **{$secondes}s** !"
+        ]
+    ]);
+    exit;
+}

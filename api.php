@@ -40,6 +40,18 @@ function refuser(string $message): never
     throw new RuntimeException($message, 409);
 }
 
+// Fonction helper en haut de api.php
+function obtenirCooldownFlash(): float {
+    $fichier = __DIR__ . '/data/cooldown.json';
+    if (file_exists($fichier)) {
+        $json = json_decode(file_get_contents($fichier), true);
+        if (isset($json['cooldown'])) {
+            return (float)$json['cooldown'];
+        }
+    }
+    return 1.0; // 1s par défaut
+}
+
 // ---------- 1) Connexion : échange du "code" Discord contre un access_token ----------
 if ($action === 'token') {
     $contexte = stream_context_create(['http' => [
@@ -348,14 +360,15 @@ function etatPour(array $p, string $id): array
     }
 
     return [
-        'phrases'  => $p['phrases'],
-        'grille'   => $p['joueurs'][$id]['grille'],
-        'joueurs'  => $joueurs,
-        'valides'  => $p['valides'],
-        'vote'     => $vote,
-        'dernier'  => $p['dernier'],
-        'victoire' => $victoire,
-        'flashes'    => $p['flashes'] ?? [],
+        'phrases'       => $p['phrases'],
+        'grille'        => $joueur['grille'],
+        'valides'       => $p['valides'],
+        'joueurs'       => $joueurs,
+        'vote'          => $v,
+        'dernier'       => $p['dernier'],
+        'victoire'      => $p['victoire'],
+        'flashes'       => $p['flashes'] ?? [],
+        'cooldownFlash' => obtenirCooldownFlash() // Transmis au JS
     ];
 }
 
@@ -402,15 +415,14 @@ if (in_array($action, ['etat', 'proposer', 'relancer', 'voter', 'flash'], true))
                     $cible = preg_replace('/[^0-9]/', '', (string)($e['cible'] ?? ''));
                     $maintenant = microtime(true);
                     $dernierFlash = $p['joueurs'][$id]['dernierFlash'] ?? 0;
+                    $cooldown = obtenirCooldownFlash();
 
-                    // Bloque si le joueur tente de flasher plus d'une fois par seconde
-                    if (($maintenant - $dernierFlash) < 1.0) {
-                        break;
+                    if (($maintenant - $dernierFlash) < $cooldown) {
+                        break; // Rejette si sous le cooldown
                     }
 
                     if ($cible !== '') {
                         $p['joueurs'][$id]['dernierFlash'] = $maintenant;
-
                         if (!isset($p['flashes'])) {
                             $p['flashes'] = [];
                         }
@@ -419,7 +431,6 @@ if (in_array($action, ['etat', 'proposer', 'relancer', 'voter', 'flash'], true))
                             'cible' => $cible,
                             't'     => $maintenant
                         ];
-                        // Ne conserve que les flashs des 10 dernières secondes
                         $p['flashes'] = array_values(array_filter($p['flashes'], fn($f) => ($maintenant - $f['t']) < 10));
                     }
                     break;
