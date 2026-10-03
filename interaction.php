@@ -1,4 +1,6 @@
 <?php
+ini_set('display_errors', '0'); // Désactive l'affichage HTML des erreurs/warnings
+error_reporting(E_ALL);
 header('Content-Type: application/json; charset=utf-8');
 $config = require __DIR__ . '/config.php';
 
