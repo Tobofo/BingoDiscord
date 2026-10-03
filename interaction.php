@@ -60,7 +60,7 @@ function genererEmbedPhrases(array $phrases, int $page = 1, int $parPage = 10): 
 
     foreach ($phrasesPage as $index => $texte) {
         $num = $index + 1;
-        $description .= "▸ **#{$num}** — « " . htmlspecialchars($texte) . " »\n";
+        $description .= "▸ **#{$num}** — « {$texte} »\n";
 
         $labelTexte = (mb_strlen($texte) > 90) ? mb_substr($texte, 0, 87) . '...' : $texte;
 
@@ -144,7 +144,7 @@ function repondreSelectionPhrase(array $phrases, int $index): array {
                 [
                     'title'       => "⚙️ Action sur la phrase #{$num}",
                     'color'       => 0xFEE75C,
-                    'description' => "Phrase sélectionnée :\n> « **" . htmlspecialchars($texte) . "** »\n\nQue souhaites-tu faire ?",
+                    'description' => "Phrase sélectionnée :\n> « **{$texte}** »\n\nQue souhaites-tu faire ?",
                 ]
             ],
             'components' => [
@@ -226,7 +226,7 @@ if ($type === 2) {
             echo json_encode([
                 'type' => 4,
                 'data' => [
-                    'content' => '⚠️ La phrase « **' . htmlspecialchars($nouvellePhrase) . '** » existe déjà dans le Bingo.',
+                    'content' => "⚠️ La phrase « **{$nouvellePhrase}** » existe déjà dans le Bingo.",
                     'flags' => 64
                 ]
             ]);
@@ -237,7 +237,7 @@ if ($type === 2) {
         $succes = sauvegarderPhrasesFirebase($phrases, $config);
 
         $message = $succes 
-            ? '✔ La phrase « **' . htmlspecialchars($nouvellePhrase) . '** » a été ajoutée à la base de données !'
+            ? "✔ La phrase « **{$nouvellePhrase}** » a été ajoutée à la base de données !"
             : '✘ Erreur lors de l\'écriture dans Firebase.';
 
         echo json_encode([
@@ -384,7 +384,7 @@ if ($type === 5) {
             echo json_encode([
                 'type' => 4,
                 'data' => [
-                    'content' => "✅ La phrase #" . ($index + 1) . " a bien été modifiée : « **" . htmlspecialchars($nouveauTexte) . "** »",
+                    'content' => "✅ La phrase #" . ($index + 1) . " a bien été modifiée : « **{$nouveauTexte}** »",
                     'flags'   => 64
                 ]
             ]);
