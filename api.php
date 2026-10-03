@@ -6,6 +6,8 @@
 // lui-même les cases cochées. Les joueurs ne peuvent donc pas se les cocher.
 // L'état de chaque partie est dans data/<instance>.json
 // ---------------------------------------------------------------
+ini_set('display_errors', '0'); // Désactive l'affichage HTML des erreurs/warnings
+error_reporting(E_ALL);
 header('Content-Type: application/json; charset=utf-8');
 $config = require __DIR__ . '/config.php';
 $action = $_GET['action'] ?? '';
