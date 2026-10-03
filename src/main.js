@@ -77,6 +77,7 @@ function afficherMaGrille() {
     etat.grille.forEach((numero) => {
       const div = document.createElement("div");
       div.className = "case";
+      div.dataset.phrase = numero;
       div.textContent = etat.phrases[numero];
       div.addEventListener("click", () => proposer(numero));
       zone.appendChild(div);
@@ -162,7 +163,6 @@ function afficherJoueurs() {
   }
 }
 
-// Au niveau des variables globales (remplace let dernierFlashId = null)
 const flashesVus = new Set();
 
 function verifierFlashRecu() {
@@ -170,7 +170,7 @@ function verifierFlashRecu() {
     etat.flashes.forEach((f) => {
       if (String(f.cible) === String(moi.id) && !flashesVus.has(f.id)) {
         flashesVus.add(f.id);
-        declencherFlash(); // Lance chaque flash en concurrence
+        declencherFlash();
       }
     });
   }
@@ -188,6 +188,7 @@ function afficherPhrases() {
     etat.phrases.forEach((texte, i) => {
       const div = document.createElement("div");
       div.className = "phrase";
+      div.dataset.phrase = i;
       div.textContent = texte;
       div.dataset.recherche = normaliser(texte);
       div.addEventListener("click", () => proposer(i));
@@ -220,7 +221,6 @@ function appliquerRecherche() {
 }
 
 let dernierVoteId = null;
-let dernierFlashId = null;
 
 // Fenêtre de vote (une phrase, ou une nouvelle partie)
 function afficherVote() {
@@ -333,7 +333,6 @@ function ajusterCanvasFlash(canvas) {
   canvas.height = window.innerHeight * dpr;
 }
 
-// Déclenche une instance indépendante du flash (superposition concurrente)
 function declencherFlash(callbackFin) {
   const container = $("flash");
   container.classList.add("actif");
@@ -469,6 +468,7 @@ async function main() {
   }
 }
 
+// Écouteurs d'événements
 $("fermer-alerte").addEventListener("click", effacerMessage);
 $("relancer").addEventListener("click", relancer);
 $("oui").addEventListener("click", () => voter(true));
@@ -476,6 +476,26 @@ $("non").addEventListener("click", () => voter(false));
 $("recherche").addEventListener("input", appliquerRecherche);
 $("son").addEventListener("click", basculerSon);
 $("theme").addEventListener("click", basculerTheme);
+
+// Surbrillance tactique au survol de la liste des phrases
+$("phrases").addEventListener("mouseover", (e) => {
+  const el = e.target.closest(".phrase");
+  if (!el) return;
+  const id = el.dataset.phrase;
+  if (id !== undefined) {
+    document.querySelector(`.grille .case[data-phrase="${id}"]`)?.classList.add("cible-survol");
+  }
+});
+
+$("phrases").addEventListener("mouseout", (e) => {
+  const el = e.target.closest(".phrase");
+  if (!el) return;
+  const id = el.dataset.phrase;
+  if (id !== undefined) {
+    document.querySelector(`.grille .case[data-phrase="${id}"]`)?.classList.remove("cible-survol");
+  }
+});
+
 afficherBoutonSon();
 
 main();

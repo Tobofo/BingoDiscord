@@ -719,3 +719,22 @@ button:disabled:hover {
     --angle: 360deg;
   }
 }
+
+/* ---------- Surbrillance tactique au survol de la liste ---------- */
+
+.case.cible-survol {
+    --fill: var(--carte-survol);
+    background: var(--rouge);
+    color: var(--clair);
+    filter: drop-shadow(0 0 8px rgba(255, 70, 85, 0.75));
+    transform: scale(1.04);
+    z-index: 2;
+}
+
+/* Si la case est déjà cochée */
+.case.cochee.cible-survol {
+    --fill: var(--rouge-clair);
+    background: var(--rouge-clair);
+    color: var(--fond);
+    filter: drop-shadow(0 0 12px var(--rouge));
+}
