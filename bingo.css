@@ -680,3 +680,42 @@ button:disabled:hover {
     font-size: 1.1rem;
     line-height: 1;
 }
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.bouton-flash-joueur {
+  position: relative;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+/* État désactivé pendant le rechargement */
+.bouton-flash-joueur.cooldown {
+  pointer-events: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Superposition du cercle d'animation (sombre qui se remplit sur 1s) */
+.bouton-flash-joueur.cooldown::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(rgba(0, 0, 0, 0.55) var(--angle), transparent 0deg);
+  animation: recharge-cercle 1s linear forwards;
+  animation-delay: var(--cooldown-delay, 0s);
+}
+
+@keyframes recharge-cercle {
+  from {
+    --angle: 0deg;
+  }
+  to {
+    --angle: 360deg;
+  }
+}

@@ -400,17 +400,26 @@ if (in_array($action, ['etat', 'proposer', 'relancer', 'voter', 'flash'], true))
 
                 case 'flash':
                     $cible = preg_replace('/[^0-9]/', '', (string)($e['cible'] ?? ''));
+                    $maintenant = microtime(true);
+                    $dernierFlash = $p['joueurs'][$id]['dernierFlash'] ?? 0;
+
+                    // Bloque si le joueur tente de flasher plus d'une fois par seconde
+                    if (($maintenant - $dernierFlash) < 1.0) {
+                        break;
+                    }
+
                     if ($cible !== '') {
+                        $p['joueurs'][$id]['dernierFlash'] = $maintenant;
+
                         if (!isset($p['flashes'])) {
                             $p['flashes'] = [];
                         }
                         $p['flashes'][] = [
                             'id'    => bin2hex(random_bytes(4)),
                             'cible' => $cible,
-                            't'     => microtime(true)
+                            't'     => $maintenant
                         ];
                         // Ne conserve que les flashs des 10 dernières secondes
-                        $maintenant = microtime(true);
                         $p['flashes'] = array_values(array_filter($p['flashes'], fn($f) => ($maintenant - $f['t']) < 10));
                     }
                     break;

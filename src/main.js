@@ -87,10 +87,24 @@ function afficherMaGrille() {
   });
 }
 
-// Une mini-grille 5x5 par autre joueur + bouton flash
+let dernierFlashEnvoye = 0;
+
+function flasherJoueur(cibleId) {
+  const maintenant = Date.now();
+  if (maintenant - dernierFlashEnvoye < 1000) return;
+
+  dernierFlashEnvoye = maintenant;
+  afficherJoueurs(); // Applique le cooldown immédiatement sur l'interface
+  jeu("flash", { cible: cibleId }).catch(montrerErreur);
+}
+
 function afficherJoueurs() {
   const zone = $("joueurs");
   zone.innerHTML = "";
+
+  const tempsEcoule = Date.now() - dernierFlashEnvoye;
+  const enCooldown = tempsEcoule < 1000;
+
   etat.joueurs
     .filter((j) => j.id !== String(moi.id))
     .forEach((j) => {
@@ -116,17 +130,28 @@ function afficherJoueurs() {
       btnFlash.className = "bouton-flash-joueur";
       btnFlash.textContent = "☀️";
       btnFlash.title = `Envoyer un flash à ${j.nom}`;
+
+      // Gestion visuelle et logique du cooldown 1s
+      if (enCooldown) {
+        btnFlash.classList.add("cooldown");
+        btnFlash.disabled = true;
+        // Décale l'animation si la fonction est rappelée pendant le rafraîchissement
+        btnFlash.style.setProperty("--cooldown-delay", `-${tempsEcoule / 1000}s`);
+      }
+
       btnFlash.addEventListener("click", () => flasherJoueur(j.id));
 
       ligneNom.append(nom, btnFlash);
       carte.append(mini, ligneNom);
       zone.appendChild(carte);
     });
-  if (!zone.children.length) zone.textContent = "En attente d'autres joueurs…";
-}
 
-function flasherJoueur(cibleId) {
-  jeu("flash", { cible: cibleId }).catch(montrerErreur);
+  if (!zone.children.length) zone.textContent = "En attente d'autres joueurs…";
+
+  // Reprogramme un rafraîchissement à la fin exacte du cooldown pour réactiver les boutons
+  if (enCooldown) {
+    setTimeout(afficherJoueurs, 1000 - tempsEcoule);
+  }
 }
 
 // Au niveau des variables globales (remplace let dernierFlashId = null)
